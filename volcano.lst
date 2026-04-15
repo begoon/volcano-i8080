@@ -1,0 +1,2728 @@
+0100:                       org  100h
+                            section rescue
+
+=117F               screen_area   equ 117fh
+=F809               monitor_cout  equ 0F809h
+=F803               monitor_cin   equ 0F803h
+=F800               monitor       equ 0F800h
+=F812               monitor_kbhit equ 0F812h
+
+0100:               start:                                  ; offset=0100h
+0100: 31 7F 11              lxi  sp, screen_area
+0103: 0E 1F                 mvi  c, 1Fh
+0105: CD 09 F8              call monitor_cout
+0108: 21 6A 02              lxi  h, title_msg     ; "\x1BY) wersiq 1.0 r-86rk\r\n\n390008 rqzanx b"...
+010B: CD 22 06              call print_str
+010E: CD ED 01              call show_sound_status
+0111: 0E 01                 mvi  c, 1
+0113: CD 0C 02              call display_controls
+0116: 21 1A 0F              lxi  h, 0F1Ah
+0119: 11 12 21              lxi  d, 2112h
+011C: 06 05                 mvi  b, 5
+
+011E:               loc_11E:                                ; offset=011Eh
+011E: 7E                    mov  a, m
+011F: FE 05                 cpi  5
+0121: D2 3E 01              jnc  loc_13E
+0124: EB                    xchg
+0125: CD 80 05              call set_cursor
+0128: EB                    xchg
+0129: CD 97 01              call print_number
+012C: 23                    inx  h
+012D: CD 97 01              call print_number
+0130: 23                    inx  h
+0131: 0E 20                 mvi  c, 20h     ; ' '
+0133: CD 09 F8              call monitor_cout
+0136: CD 22 06              call print_str
+0139: 1C                    inr  e
+013A: 05                    dcr  b
+013B: C2 1E 01              jnz  loc_11E
+
+013E:               loc_13E:                                ; offset=013Eh
+013E: 21 18 21              lxi  h, 2118h
+0141: CD 80 05              call set_cursor
+0144: 21 19 0F              lxi  h, saved_people
+0147: 7E                    mov  a, m
+0148: FE 05                 cpi  5
+014A: D2 5C 01              jnc  loc_15C
+014D: CD 97 01              call print_number
+0150: 21 A8 0F              lxi  h, used_helicopters
+0153: CD 97 01              call print_number
+0156: 21 BF 03              lxi  h, last_rescuer_msg     ; " - poslednij rezulxtat"
+0159: CD 22 06              call print_str
+
+015C:               loc_15C:                                ; offset=015Ch
+015C: 0E 0C                 mvi  c, 0Ch
+015E: CD 09 F8              call monitor_cout
+0161: E5                    push h
+0162: 21 E6 04              lxi  h, 4E6h
+0165: 1E 07                 mvi  e, 7
+
+0167:               loc_167:                                ; offset=0167h
+0167: 16 07                 mvi  d, 7
+0169: E3                    xthl
+016A: 21 DF 04              lxi  h, volcano
+016D: E3                    xthl
+
+016E:               loc_16E:                                ; offset=016Eh
+016E: 06 08                 mvi  b, 8
+0170: 7E                    mov  a, m
+
+0171:               loc_171:                                ; offset=0171h
+0171: 17                    ral
+0172: DA 91 01              jc   loc_191
+0175: 0E 20                 mvi  c, 20h     ; ' '
+
+0177:               loc_177:                                ; offset=0177h
+0177: CD 09 F8              call monitor_cout
+017A: 05                    dcr  b
+017B: C2 71 01              jnz  loc_171
+017E: 23                    inx  h
+017F: E3                    xthl
+0180: 23                    inx  h
+0181: E3                    xthl
+0182: 15                    dcr  d
+0183: C2 6E 01              jnz  loc_16E
+0186: CD 8E 06              call print_crlf
+0189: 1D                    dcr  e
+018A: C2 67 01              jnz  loc_167
+018D: E1                    pop  h
+018E: C3 A8 01              jmp  menu_loop
+
+0191:               loc_191:                                ; offset=0191h
+0191: E3                    xthl
+0192: 4E                    mov  c, m
+0193: E3                    xthl
+0194: C3 77 01              jmp  loc_177
+
+0197:               print_number:                           ; offset=0197h
+0197: 7E                    mov  a, m
+0198: C6 30                 adi  30h        ; '0'
+019A: 4F                    mov  c, a
+019B: CD 09 F8              call monitor_cout
+019E: 0E 20                 mvi  c, 20h     ; ' '
+01A0: CD 09 F8              call monitor_cout
+01A3: 0E 20                 mvi  c, 20h     ; ' '
+01A5: C3 09 F8              jmp  monitor_cout
+
+01A8:               menu_loop:                              ; offset=01A8h
+01A8: 21 A8 03              lxi  h, input_command_msg
+01AB: CD 22 06              call print_str
+01AE: CD 03 F8              call monitor_cin
+01B1: FE 50                 cpi  50h            ; 'P'
+01B3: CA 32 06              jz   start_game
+01B6: FE 4B                 cpi  4Bh            ; 'K'
+01B8: CA 04 02              jz   loc_204
+01BB: FE 53                 cpi  53h            ; 'S'
+01BD: CA D8 01              jz   change_sound_status
+01C0: FE 45                 cpi  45h            ; 'E'
+01C2: C2 A8 01              jnz  menu_loop
+01C5: 21 D6 03              lxi  h, end_msg     ; " konec ..."
+01C8: CD 22 06              call print_str
+01CB: 01 0A 19              lxi  b, 190Ah       ; print 25 lines
+
+01CE:               loc_1CE:                                ; offset=01CEh
+01CE: CD 09 F8              call monitor_cout
+01D1: 05                    dcr  b
+01D2: C2 CE 01              jnz  loc_1CE
+01D5: C3 00 F8              jmp  monitor
+
+01D8:               change_sound_status:                    ; offset=01D8h
+01D8: 3A 18 0F              lda  sound_status
+01DB: FE 07                 cpi  7
+01DD: 3E 0C                 mvi  a, 0Ch
+01DF: CA E4 01              jz   loc_1E4
+01E2: 3E 07                 mvi  a, 7
+
+01E4:               loc_1E4:                                ; offset=01E4h
+01E4: 32 18 0F              sta  sound_status
+01E7: CD ED 01              call show_sound_status
+01EA: C3 A8 01              jmp  menu_loop
+
+01ED:               show_sound_status:                      ; offset=01EDh
+01ED: 21 0E 31              lxi  h, 310Eh
+01F0: CD 80 05              call set_cursor
+01F3: 3A 18 0F              lda  sound_status
+01F6: 21 E1 03              lxi  h, sound_on_msg
+01F9: FE 07                 cpi  7
+01FB: CA 22 06              jz   print_str
+01FE: 21 E5 03              lxi  h, sound_off_msg
+0201: C3 22 06              jmp  print_str
+
+0204:               loc_204:                                ; offset=0204h
+0204: 0E 00                 mvi  c, 0
+0206: CD 0C 02              call display_controls
+0209: C3 A8 01              jmp  menu_loop
+
+020C:               display_controls:                       ; offset=020Ch
+020C: 21 09 30              lxi  h, 3009h
+020F: 11 14 0F              lxi  d, 0F14h
+0212: 06 04                 mvi  b, 4
+
+0214:               loc_214:                                ; offset=0214h
+0214: C5                    push b
+0215: 0D                    dcr  c
+0216: CA 20 02              jz   loc_220
+0219: CD 2B 02              call sub_22B
+021C: CD 03 F8              call monitor_cin
+021F: 12                    stax d
+
+0220:               loc_220:                                ; offset=0220h
+0220: CD 2B 02              call sub_22B
+0223: C1                    pop  b
+0224: 2C                    inr  l
+0225: 13                    inx  d
+0226: 05                    dcr  b
+0227: C2 14 02              jnz  loc_214
+022A: C9                    ret
+
+022B:               sub_22B:                                ; offset=022Bh
+022B: CD 80 05              call set_cursor
+022E: 01 20 0F              lxi  b, 0F20h
+
+0231:               loc_231:                                ; offset=0231h
+0231: CD 09 F8              call monitor_cout
+0234: 05                    dcr  b
+0235: C2 31 02              jnz  loc_231
+0238: CD 80 05              call set_cursor
+023B: 1A                    ldax d
+023C: FE 7F                 cpi  7Fh     ;
+023E: CA 4A 02              jz   loc_24A
+0241: FE 21                 cpi  21h     ; '!'
+0243: DA 53 02              jc   loc_253
+0246: 4F                    mov  c, a
+0247: C3 09 F8              jmp  monitor_cout
+
+024A:               loc_24A:                                ; offset=024Ah
+024A: E5                    push h
+024B: 21 F1 03              lxi  h, delete_msg     ; "DELETE"
+024E: CD 22 06              call print_str
+0251: E1                    pop  h
+0252: C9                    ret
+
+0253:               loc_253:                                ; offset=0253h
+0253: E5                    push h
+0254: 21 F8 03              lxi  h, 3F8h
+0257: 47                    mov  b, a
+
+0258:               loc_258:                                ; offset=0258h
+0258: 05                    dcr  b
+0259: FA 65 02              jm   loc_265
+
+025C:               loc_25C:                                ; offset=025Ch
+025C: 7E                    mov  a, m
+025D: B7                    ora  a
+025E: 23                    inx  h
+025F: C2 5C 02              jnz  loc_25C
+0262: C3 58 02              jmp  loc_258
+
+0265:               loc_265:                                ; offset=0265h
+0265: CD 22 06              call print_str
+0268: E1                    pop  h
+0269: C9                    ret
+
+026A:               title_msg:                              ; offset=026Ah
+026A: 1B 59 29 20           db   1Bh, "Y) wersiq 1.0 r-86rk", 0Dh, 0Ah, 0Ah,
+026E: 77 65 72 73
+0272: 69 71 20 31
+0276: 2E 30 20 72
+027A: 2D 38 36 72
+027E: 6B 0D 0A 0A
+0282: 33 39 30 30           db   "390008 rqzanx bratislawskaq 27", 0Dh, 0Ah,
+0286: 30 38 20 72
+028A: 71 7A 61 6E
+028E: 78 20 62 72
+0292: 61 74 69 73
+0296: 6C 61 77 73
+029A: 6B 61 71 20
+029E: 32 37 0D 0A
+02A2: 72 61 64 69           db   "radiotehni~eskij institut", 0Dh, 0Ah,
+02A6: 6F 74 65 68
+02AA: 6E 69 7E 65
+02AE: 73 6B 69 6A
+02B2: 20 69 6E 73
+02B6: 74 69 74 75
+02BA: 74 0D 0A
+02BD: 73 6B 62 20           db   "skb  ", 22h, "DESIGN", 22h, 0Dh, 0Ah,
+02C1: 20 22 44 45
+02C5: 53 49 47 4E
+02C9: 22 0D 0A
+02CC: 28 43 29 20           db   "(C) 1987 BONY", 0Dh, 0Ah, 0Ah,
+02D0: 31 39 38 37
+02D4: 20 42 4F 4E
+02D8: 59 0D 0A 0A
+02DC: 4D 65 6E 60           db   "Men`:", 0Dh, 0Ah, 0Ah,
+02E0: 3A 0D 0A 0A
+02E4: 50 20 2D 20           db   "P - igra", 0Dh, 0Ah,
+02E8: 69 67 72 61
+02EC: 0D 0A
+02EE: 4B 20 2D 20           db   "K - programmirowanie klawi{", 0Dh, 0Ah,
+02F2: 70 72 6F 67
+02F6: 72 61 6D 6D
+02FA: 69 72 6F 77
+02FE: 61 6E 69 65
+0302: 20 6B 6C 61
+0306: 77 69 7B 0D
+030A: 0A
+030B: 53 20 2D 20           db   "S - zwuk", 0Dh, 0Ah,
+030F: 7A 77 75 6B
+0313: 0D 0A
+0315: 45 20 2D 20           db   "E - wyhod",
+0319: 77 79 68 6F
+031D: 64
+031E: 1B 59 29 48           db   1Bh, "Y)Hwlewo -",
+0322: 77 6C 65 77
+0326: 6F 20 2D
+0329: 1B 59 2A 48           db   1Bh, "Y*Hwprawo-",
+032D: 77 70 72 61
+0331: 77 6F 2D
+0334: 1B 59 2B 48           db   1Bh, "Y+Hwwerh -",
+0338: 77 77 65 72
+033C: 68 20 2D
+033F: 1B 59 2C 48           db   1Bh, "Y,Hwniz  -",
+0343: 77 6E 69 7A
+0347: 20 20 2D
+034A: 1B 59 2D 48           db   1Bh, "Y-Hogonx - dr.",
+034E: 6F 67 6F 6E
+0352: 78 20 2D 20
+0356: 64 72 2E
+0359: 1B 59 2E 48           db   1Bh, "Y.Hzwuk  - w",
+035D: 7A 77 75 6B
+0361: 20 20 2D 20
+0365: 77
+0366: 1B 59 2F 43           db   1Bh, "Y/C-+-",
+036A: 2D 2B 2D
+036D: 1B 59 30 41           db   1Bh, "Y0AI  O-+ lu~{ie spasateli:",
+0371: 49 20 20 4F
+0375: 2D 2B 20 6C
+0379: 75 7E 7B 69
+037D: 65 20 73 70
+0381: 61 73 61 74
+0385: 65 6C 69 3A
+0389: 1B 59 32 3E           db   1Bh, "Y2>1)",
+038D: 31 29
+038F: 1B 59 33 3E           db   1Bh, "Y3>2)",
+0393: 32 29
+0395: 1B 59 34 3E           db   1Bh, "Y4>3)",
+0399: 33 29
+039B: 1B 59 35 3E           db   1Bh, "Y5>4)",
+039F: 34 29
+03A1: 1B 59 36 3E           db   1Bh, "Y6>5)", 0
+03A5: 35 29 00
+03A8:               input_command_msg:                      ; offset=03A8h
+03A8: 1B                    db   1Bh
+03A9: 59                    db   59h     ; Y
+03AA: 38                    db   38h     ; 8
+03AB: 20 77 77 65           db   20h, "wwedite direktiwu:", 0
+03AF: 64 69 74 65
+03B3: 20 64 69 72
+03B7: 65 6B 74 69
+03BB: 77 75 3A 00
+03BF:               last_rescuer_msg:                       ; offset=03BFh
+03BF: 20 2D 20 70           db   " - poslednij rezulxtat", 0
+03C3: 6F 73 6C 65
+03C7: 64 6E 69 6A
+03CB: 20 72 65 7A
+03CF: 75 6C 78 74
+03D3: 61 74 00
+03D6:               end_msg:                                ; offset=03D6h
+03D6: 20 6B 6F 6E           db   " konec ...", 0
+03DA: 65 63 20 2E
+03DE: 2E 2E 00
+03E1:               sound_on_msg:                           ; offset=03E1h
+03E1: 6B                    db   6Bh     ; k
+03E2: 6C                    db   6Ch     ; l
+03E3: 20 00                 db   20h, 0
+03E5:               sound_off_msg:                          ; offset=03E5h
+03E5: 79                    db   79h     ; y
+03E6: 6B                    db   6Bh     ; k
+03E7: 6C                    db   6Ch     ; l
+03E8: 00 1F 1B              db   0, 1Fh, 1Bh
+03EB: 62                    db   62h     ; b
+03EC: 00                    db   0
+03ED:               set_cursor_somewhere:                   ; offset=03EDh
+03ED: 1F 1B                 db   1Fh, 1Bh
+03EF: 61                    db   61h     ; a
+03F0: 00                    db   0
+03F1:               delete_msg:                             ; offset=03F1h
+03F1: 44 45 4C 45           db   "DELETE", 0
+03F5: 54 45 00
+                    ; -----------------------------------------------------------------------
+                    ; Key name lookup table -- null-terminated strings for display_controls.
+                    ; Indexed by key code (0x00..0x1F). sub_22B scans through these
+                    ; null-terminated entries to find the name for a given key code.
+                    ; Used when showing/programming the helicopter control keys.
+                    ; -----------------------------------------------------------------------
+03F8:               f1_msg:                                 ; offset=03F8h
+03F8: 46 31 00              db   "F1", 0
+03FB: 46 32 00              db   "F2", 0
+03FE: 46 33 00              db   "F3", 0
+0401: 46 34 00              db   "F4", 0
+0404: 5E 44 00              db   "^D", 0
+0407: 5E 45 00              db   "^E", 0
+040A: 5E 46 00              db   "^F", 0
+040D: 5E 47 00              db   "^G", 0
+0410: 4C 45 46 54           db   "LEFT", 0
+0414: 00
+0415: 5E 4A 00              db   "^J", 0
+0418: 4C 49 4E 45           db   "LINE FEED", 0
+041C: 20 46 45 45
+0420: 44 00
+0422: 5E 4B 00              db   "^K", 0
+0425: 48 4F 4D 45           db   "HOME", 0
+0429: 00
+042A: 52 45 54 55           db   "RETURN", 0
+042E: 52 4E 00
+0431: 5E 4E 00              db   "^N", 0
+0434: 5E 4F 00              db   "^O", 0
+0437: 5E 50 00              db   "^P", 0
+043A: 5E 51 00              db   "^Q", 0
+043D: 5E 52 00              db   "^R", 0
+0440: 5E 53 00              db   "^S", 0
+0443: 5E 54 00              db   "^T", 0
+0446: 5E 55 00              db   "^U", 0
+0449: 5E 56 00              db   "^V", 0
+044C: 5E 57 00              db   "^W", 0
+044F: 52 49 47 48           db   "RIGHT", 0
+0453: 54 00
+0455: 55 50 00              db   "UP", 0
+0458: 44 4F 57 4E           db   "DOWN", 0
+045C: 00
+045D: 45 53 43 41           db   "ESCAPE", 0
+0461: 50 45 00
+0464: 5E 5C 00              db   "^", 5Ch, 0     ; "^\"
+0467: 5E 5D 00              db   "^]", 0
+046A: 5E 5E 00              db   "^^", 0
+046D: 5E 5F 00              db   "^_", 0
+0470: 53 50 41 43           db   "SPACE", 0
+0474: 45 00
+0476:               you_best_rescuer_msg:                   ; offset=0476h
+0476: 1B                    db   1Bh
+0477: 59                    db   59h     ; Y
+0478: 28                    db   28h     ; (
+0479: 20 77 79 20           db   20h, "wy lu~{ij spasatelx  !", 0
+047D: 6C 75 7E 7B
+0481: 69 6A 20 73
+0485: 70 61 73 61
+0489: 74 65 6C 78
+048D: 20 20 21 00
+0491:               your_name_history_msg:                  ; offset=0491h
+0491: 1B                    db   1Bh
+0492: 59                    db   59h     ; Y
+0493: 2E                    db   2Eh     ; .
+0494: 2A                    db   2Ah     ; *
+0495: 77 61 7B 65           db   "wa{e imq wojdet w istori`  - ", 0
+0499: 20 69 6D 71
+049D: 20 77 6F 6A
+04A1: 64 65 74 20
+04A5: 77 20 69 73
+04A9: 74 6F 72 69
+04AD: 60 20 20 2D
+04B1: 20 00
+04B3:               you_good_pilot_msg:                     ; offset=04B3h
+04B3: 1B                    db   1Bh
+04B4: 59                    db   59h     ; Y
+04B5: 2A                    db   2Ah     ; *
+04B6: 2F                    db   2Fh     ; /
+04B7: 20 69 20 77           db   " i wysokoklasnyj pilot wertoletow !", 0
+04BB: 79 73 6F 6B
+04BF: 6F 6B 6C 61
+04C3: 73 6E 79 6A
+04C7: 20 70 69 6C
+04CB: 6F 74 20 77
+04CF: 65 72 74 6F
+04D3: 6C 65 74 6F
+04D7: 77 20 21 00
+04DB:               back_space_back_msg:                    ; offset=04DBh
+04DB: 08 20 08 00           db   8, " ", 8, 0
+                    ; -----------------------------------------------------------------------
+                    ; volcano -- title screen bitmap font data
+                    ; Structure: 7 bytes of character table ("VOLCANO") followed by
+                    ; 49 bytes of bitmap data (7 rows x 7 bytes per row).
+                    ;
+                    ; Rendering (see loc_167): for each of the 7 rows, 7 bitmap bytes are
+                    ; processed. Each byte is 8 pixels (MSB first via RAL). A '1' bit prints
+                    ; the corresponding column's letter from "VOLCANO"; a '0' bit prints space.
+                    ;
+                    ; Result: large pixel-art title where each letter column uses its own char:
+                    ;   V.....V. .OOOOO.. L....... .CCCCC.. ......A. N.....N. .OOOOO..
+                    ;   V....V.. O.....O. L....... C.....C. .....AA. NN....N. O.....O.
+                    ;   V...V... O.....O. L....... C....... ....A.A. N.N...N. O.....O.
+                    ;   V..V.... O.....O. L....... C....... ...A..A. N..N..N. O.....O.
+                    ;   V.V..... O.....O. L....... C....... ..A...A. N...N.N. O.....O.
+                    ;   VV...... O.....O. L....... C.....C. .AAAAAA. N....NN. O.....O.
+                    ;   V....... .OOOOO.. LLLLLLL. .CCCCC.. A.....A. N.....N. .OOOOO..
+                    ; -----------------------------------------------------------------------
+04DF:               volcano:                                ; offset=04DFh
+04DF: 56 4F 4C 43           db   'V', 'O', 'L', 'C', 'A', 'N', 'O'
+04E3: 41 4E 4F
+04E6: 82                    db   82h
+04E7: 7C                    db   7Ch     ; |
+04E8: 80                    db   80h
+04E9: 7C                    db   7Ch     ; |
+04EA: 02                    db   2
+04EB: 82                    db   82h
+04EC: 7C                    db   7Ch     ; |
+04ED: 84                    db   84h
+04EE: 82                    db   82h
+04EF: 80                    db   80h
+04F0: 82                    db   82h
+04F1: 06                    db   6
+04F2: C2                    db   0C2h
+04F3: 82                    db   82h
+04F4: 88                    db   88h
+04F5: 82                    db   82h
+04F6: 80                    db   80h
+04F7: 80                    db   80h
+04F8: 0A                    db   0Ah
+04F9: A2                    db   0A2h
+04FA: 82                    db   82h
+04FB: 90                    db   90h
+04FC: 82                    db   82h
+04FD: 80                    db   80h
+04FE: 80                    db   80h
+04FF: 12                    db   12h
+0500: 92                    db   92h
+0501: 82                    db   82h
+0502: A0                    db   0A0h
+0503: 82                    db   82h
+0504: 80                    db   80h
+0505: 80                    db   80h
+0506: 22                    db   22h     ; "
+0507: 8A                    db   8Ah
+0508: 82                    db   82h
+0509: C0                    db   0C0h
+050A: 82                    db   82h
+050B: 80                    db   80h
+050C: 82                    db   82h
+050D: 7E                    db   7Eh     ; ~
+050E: 86                    db   86h
+050F: 82                    db   82h
+0510: 80                    db   80h
+0511: 7C                    db   7Ch     ; |
+0512: FE                    db   0FEh
+0513: 7C                    db   7Ch     ; |
+0514: 82                    db   82h
+0515: 82                    db   82h
+0516: 7C                    db   7Ch     ; |
+
+                    ; -----------------------------------------------------------------------
+                    ; move_stone -- update one stone/ash particle position and draw it
+                    ; Input:  HL = pointer to 8-byte stone structure (see init_stone)
+                    ; Output: HL = pointer past the structure (HL+8)
+                    ;
+                    ; Updates position using 16-bit fixed-point arithmetic:
+                    ;   x_pos += x_vel (constant horizontal drift)
+                    ;   y_vel += 1 (gravity acceleration)
+                    ;   y_pos += y_vel (vertical movement)
+                    ; If stone goes off-screen (row >= 25 or col >= 64), respawns it.
+                    ; Erases old '*' from screen, draws new '*' at updated position.
+                    ; If new position hits helicopter 'O', triggers collision.
+                    ; If new position has '-' (bullet), replaces with '+' (hit marker).
+                    ; -----------------------------------------------------------------------
+0517:               move_stone:                             ; offset=0517h
+0517: C5                    push b
+0518: 7E                    mov  a, m     ; [0] x_vel_lo
+0519: 23                    inx  h
+051A: 86                    add  m        ; + [1] x_pos_lo
+051B: 77                    mov  m, a     ; [1] x_pos_lo += x_vel_lo
+051C: 23                    inx  h
+051D: 7E                    mov  a, m     ; [2] x_vel_hi
+051E: 23                    inx  h
+051F: 4E                    mov  c, m     ; c = [3] x_pos_hi (old column)
+0520: 89                    adc  c        ; a = x_vel_hi + x_pos_hi + carry
+0521: 77                    mov  m, a     ; [3] x_pos_hi = new column
+0522: 47                    mov  b, a     ; b = new column
+0523: 23                    inx  h
+0524: 7E                    mov  a, m     ; [4] y_vel_lo
+0525: C6 01                 adi  1        ; y_vel_lo += 1 (gravity!)
+0527: 77                    mov  m, a     ; [4] y_vel_lo updated
+0528: 5F                    mov  e, a     ; e = new y_vel_lo
+0529: 23                    inx  h
+052A: 7E                    mov  a, m     ; [5] y_vel_hi
+052B: CE 00                 aci  0        ; y_vel_hi += carry from y_vel_lo overflow
+052D: 77                    mov  m, a     ; [5] y_vel_hi updated
+052E: 57                    mov  d, a     ; d = new y_vel_hi
+052F: 23                    inx  h
+0530: 7E                    mov  a, m     ; [6] y_pos_lo
+0531: 83                    add  e        ; y_pos_lo += y_vel_lo
+0532: 77                    mov  m, a     ; [6] y_pos_lo updated
+0533: 23                    inx  h
+0534: 7E                    mov  a, m     ; [7] y_pos_hi (old row)
+0535: 5F                    mov  e, a     ; e = old row (for erasing)
+0536: 8A                    adc  d        ; a = y_pos_hi + y_vel_hi + carry
+0537: 77                    mov  m, a     ; [7] y_pos_hi = new row
+0538: 57                    mov  d, a     ; d = new row
+0539: 23                    inx  h        ; HL past the 8-byte structure
+053A: E5                    push h
+053B: FE 19                 cpi  19h      ; new row >= 25? (off screen bottom)
+053D: D2 E3 05              jnc  respawn_stone
+0540: 78                    mov  a, b     ; new column
+0541: FE 40                 cpi  40h      ; new column >= 64? (off screen)
+0543: D2 E3 05              jnc  respawn_stone
+                            ; -- erase old position, draw new position --
+                            ; at this point: b=new_col, c=old_col, d=new_row, e=old_row
+0546: 7B                    mov  a, e                    ; a = old row
+0547: 69                    mov  l, c                    ; l = old column
+0548: CD A0 05              call screen_area_address     ; get screen buffer address for old pos
+054B: 7E                    mov  a, m                    ; what's at old position in buffer?
+054C: FE 2A                 cpi  2Ah                     ; is it '*' (our stone)?
+054E: C2 78 05              jnz  stone_done              ; if not '*', someone else overwrote it, skip erase
+
+0551:               erase_and_draw_stone:                 ; offset=0551h
+0551: 36 20                 mvi  m, 20h                  ; clear old position in screen buffer
+0553: 6B                    mov  l, e                    ; l = old row
+0554: 61                    mov  h, c                    ; h = old column
+0555: CD 80 05              call set_cursor              ; position terminal cursor at old pos
+0558: 0E 20                 mvi  c, 20h                  ; print space (erase on screen)
+055A: CD 09 F8              call monitor_cout
+055D: 68                    mov  l, b                    ; l = new column
+055E: 7A                    mov  a, d                    ; a = new row
+055F: CD A0 05              call screen_area_address     ; get screen buffer address for new pos
+0562: 7E                    mov  a, m                    ; what's at new position?
+0563: FE 2D                 cpi  2Dh                     ; is it '-' (bullet)?
+0565: CA 7B 05              jz   stone_hit_bullet        ; bullet hit: show '+' instead of '*'
+0568: FE 4F                 cpi  4Fh                     ; is it 'O' (helicopter cockpit)?
+056A: CA 27 0C              jz   collision_condition     ; helicopter crash!
+056D: 0E 2A                 mvi  c, 2Ah                  ; draw '*' (normal stone)
+
+056F:               draw_stone_char:              ; offset=056Fh
+056F: 71                    mov  m, c             ; write to screen buffer
+0570: 6A                    mov  l, d             ; l = new row
+0571: 60                    mov  h, b             ; h = new column
+0572: CD 80 05              call set_cursor       ; position terminal cursor
+0575: CD 09 F8              call monitor_cout     ; draw the character
+
+0578:               stone_done:                   ; offset=0578h
+0578: E1                    pop  h
+0579: C1                    pop  b
+057A: C9                    ret
+
+057B:               stone_hit_bullet:             ; offset=057Bh
+057B: 0E 2B                 mvi  c, 2Bh     ; '+' = stone destroyed by bullet
+057D: C3 6F 05              jmp  draw_stone_char
+
+0580:               set_cursor:                             ; offset=0580h
+0580: C5                    push b
+0581: 0E 1B                 mvi  c, 1Bh
+0583: CD 09 F8              call monitor_cout
+0586: 0E 59                 mvi  c, 59h     ; 'Y'
+0588: CD 09 F8              call monitor_cout
+058B: 3E 20                 mvi  a, 20h     ; ' '
+058D: 85                    add  l
+058E: 4F                    mov  c, a
+058F: CD 09 F8              call monitor_cout
+0592: 3E 20                 mvi  a, 20h     ; ' '
+0594: 84                    add  h
+0595: 4F                    mov  c, a
+0596: CD 09 F8              call monitor_cout
+0599: C1                    pop  b
+059A: C9                    ret
+
+
+                    ; -----------------------------------------------------------------------
+                    ; set_cursor_in_screen_arena -- set terminal cursor AND return buffer addr
+                    ; Input: H = column, L = row
+                    ; Output: HL = screen_area buffer address, cursor positioned on screen
+                    ; Combines set_cursor (for terminal) with screen_area_address_hl (for buffer).
+                    ; -----------------------------------------------------------------------
+059B:               set_cursor_in_screen_arena:     ; offset=059Bh
+059B: CD 80 05              call set_cursor     ; set terminal cursor (Y=l, X=h)
+                            ; fall through to screen_area_address_hl
+
+                    ; screen_area_address_hl -- convert (row=L, col=H) to buffer address
+                    ; Input: H = column, L = row
+                    ; Output: HL = screen_area buffer address
+059E:               screen_area_address_hl:     ; offset=059Eh
+059E: 7D                    mov  a, l     ; a = row (swap: screen_area_address wants col in A)
+059F: 6C                    mov  l, h     ; l = column
+                            ; fall through to screen_area_address
+
+                    ; -----------------------------------------------------------------------
+                    ; screen_area_address -- convert (row, col) to screen buffer address
+                    ; Input: A = column (0-63), L = row (0-24)
+                    ; Output: HL = address in screen_area buffer
+                    ;
+                    ; RK86 screen layout: 64 columns x 25 rows, but memory is NOT linear.
+                    ; Address = screen_area + (col >> 2) * 256 + (col & 3) * 64 + row
+                    ;
+                    ; The two RRC instructions rotate A (column) right by 2:
+                    ;   A = [c1 c0 c7 c6 c5 c4 c3 c2]
+                    ; Then H gets top 6 bits (col >> 2), and L gets (col & 3) * 64 + row.
+                    ; This matches the RK86 video RAM interleaved bank layout.
+                    ; -----------------------------------------------------------------------
+05A0:               screen_area_address:     ; offset=05A0h
+05A0: D5                    push d
+05A1: 0F                    rrc           ; rotate column right (step 1 of 2)
+05A2: 0F                    rrc           ; A = [c1 c0 c7 c6 c5 c4 c3 c2]
+05A3: 67                    mov  h, a     ; save rotated value
+05A4: E6 C0                 ani  0C0h     ; a = [c1 c0 0 0 0 0 0 0] = (col & 3) << 6
+05A6: B5                    ora  l        ; a = (col & 3) * 64 + row
+05A7: 6F                    mov  l, a     ; L = low byte of offset
+05A8: 3E 3F                 mvi  a, 3Fh
+05AA: A4                    ana  h        ; a = [0 0 c7 c6 c5 c4 c3 c2] = col >> 2
+05AB: 67                    mov  h, a     ; H = high byte of offset
+05AC: 11 7F 11              lxi  d, screen_area
+05AF: 19                    dad  d        ; HL = screen_area + offset
+05B0: D1                    pop  d
+05B1: C9                    ret
+
+                    ; -----------------------------------------------------------------------
+                    ; init_stone -- initialize one 8-byte stone/ash particle structure
+                    ; Input:  HL = pointer to 8-byte structure
+                    ; Output: HL = pointer past the structure (HL+8)
+                    ;
+                    ; Stone structure (8 bytes, 16-bit fixed-point with 8.8 format):
+                    ;   byte 0: x_vel_lo   - X velocity fraction (constant per stone)
+                    ;   byte 1: x_pos_lo   - X position fraction
+                    ;   byte 2: x_vel_hi   - X velocity integer (signed, constant per stone)
+                    ;   byte 3: x_pos_hi   - X position integer (column 0-63)
+                    ;   byte 4: y_vel_lo   - Y velocity fraction (+1 each frame = gravity)
+                    ;   byte 5: y_vel_hi   - Y velocity integer (starts 0xFF = -1 = upward)
+                    ;   byte 6: y_pos_lo   - Y position fraction
+                    ;   byte 7: y_pos_hi   - Y position integer (row 0-24)
+                    ;
+                    ; Physics: x_pos += x_vel (constant horizontal drift)
+                    ;          y_vel += 1 per frame (gravity acceleration)
+                    ;          y_pos += y_vel (parabolic arc: starts upward, curves down)
+                    ;
+                    ; Spawns at volcano peak (columns 37-40, row 8) with random velocity.
+                    ; Maps to Python's make_ash(x, y, vx, vy) + ash spawn logic.
+                    ; -----------------------------------------------------------------------
+05B2:               init_stone:               ; offset=05B2h
+05B2: C5                    push b
+05B3: 3E 03                 mvi  a, 3
+05B5: CD F7 05              call random      ; random [0..3]
+05B8: 4F                    mov  c, a        ; c = column offset
+05B9: C6 25                 adi  25h         ; a = 37 + offset = column 37-40 (peak)
+05BB: 57                    mov  d, a        ; d = x_pos_hi (initial column)
+05BC: 3E FF                 mvi  a, 0FFh
+05BE: CD F7 05              call random      ; random [0..255]
+05C1: 5F                    mov  e, a        ; e = x_pos_lo (random fraction)
+05C2: E6 FC                 ani  0FCh
+05C4: B1                    ora  c           ; mix column offset into random byte
+05C5: 0F                    rrc
+05C6: 0F                    rrc              ; >>2: scale down
+05C7: D6 80                 sui  80h         ; subtract 128 to center around 0 (signed)
+05C9: 4F                    mov  c, a        ; c = x_vel_lo (signed random velocity)
+05CA: 9F                    sbb  a           ; a = sign extension (0x00 or 0xFF)
+05CB: 71                    mov  m, c        ; [0] x_vel_lo
+05CC: 23                    inx  h
+05CD: 73                    mov  m, e        ; [1] x_pos_lo (random)
+05CE: 23                    inx  h
+05CF: 77                    mov  m, a        ; [2] x_vel_hi (sign extension)
+05D0: 23                    inx  h
+05D1: 72                    mov  m, d        ; [3] x_pos_hi (column 37-40)
+05D2: 23                    inx  h
+05D3: A9                    xra  c           ; a = sign ^ vel_lo (derive Y vel from X vel)
+05D4: D6 83                 sui  83h         ; bias upward
+05D6: 77                    mov  m, a        ; [4] y_vel_lo (upward component)
+05D7: 23                    inx  h
+05D8: 36 FF                 mvi  m, 0FFh     ; [5] y_vel_hi = -1 (moving upward)
+05DA: 23                    inx  h
+05DB: 36 00                 mvi  m, 0        ; [6] y_pos_lo = 0
+05DD: 23                    inx  h
+05DE: 36 08                 mvi  m, 8        ; [7] y_pos_hi = row 8 (near volcano peak)
+05E0: 23                    inx  h
+05E1: C1                    pop  b
+05E2: C9                    ret
+
+                    ; Stone went off-screen -- rewind HL to start of structure, reinitialize
+05E3:               respawn_stone:                         ; offset=05E3h
+05E3: D5                    push d
+05E4: 11 F8 FF              lxi  d, 0FFF8h                ; -8
+05E7: 19                    dad  d                        ; hl -= 8 (back to start of stone struct)
+05E8: CD B2 05              call init_stone               ; reinitialize with new random trajectory
+05EB: 42                    mov  b, d                     ; b = new x_pos_hi (column)
+05EC: D1                    pop  d
+05ED: 16 08                 mvi  d, 8                     ; d = row 8 (initial Y for drawing)
+05EF: 7B                    mov  a, e
+05F0: 69                    mov  l, c
+05F1: CD A0 05              call screen_area_address
+05F4: C3 51 05              jmp  erase_and_draw_stone     ; draw '*' at new position
+
+                    ; -----------------------------------------------------------------------
+                    ; random(max) -- pseudo-random number generator
+                    ; Input:  A = max value (inclusive upper bound)
+                    ; Output: A = random value in [0..max]
+                    ;
+                    ; Algorithm:
+                    ;   1. Uses rng_seed (16-bit) as a pointer into low memory (0x0000-0x1FFF,
+                    ;      the ROM monitor area on RK86) to read a byte for entropy.
+                    ;   2. Mixes that byte with rng_accum and the max parameter.
+                    ;   3. Advances the seed: rng_seed += (max << 8 | rng_accum) + 1
+                    ;   4. Rejection sampling with a narrowing bitmask to produce an unbiased
+                    ;      result in [0..max]: starts with mask=0xFF, halves it until
+                    ;      (random_byte & mask) <= max.
+                    ; -----------------------------------------------------------------------
+05F7:               random:                     ; offset=05F7h
+05F7: D5                    push d
+05F8: E5                    push h
+05F9: 57                    mov  d, a          ; d = max (parameter)
+05FA: 2A 97 0F              lhld rng_seed
+05FD: 3E 1F                 mvi  a, 1Fh
+05FF: A4                    ana  h             ; h &= 0x1F -- limit pointer to 0x0000-0x1FFF
+0600: 67                    mov  h, a
+0601: 3A 99 0F              lda  rng_accum
+0604: 86                    add  m             ; a += byte read from memory[rng_seed & 0x1FFF]
+0605: 82                    add  d             ; a += max
+0606: 32 99 0F              sta  rng_accum     ; save updated accumulator
+0609: 5F                    mov  e, a          ; e = random byte
+060A: 19                    dad  d             ; rng_seed += de (d=max, e=accum)
+060B: 23                    inx  h             ; rng_seed += 1
+060C: 22 97 0F              shld rng_seed
+060F: 3E FF                 mvi  a, 0FFh       ; initial bitmask = 0xFF
+0611: C3 16 06              jmp  rng_narrow_check
+
+0614:               rng_narrow_mask:                        ; offset=0614h  mask >>= 1 (halve the mask)
+0614: 7C                    mov  a, h
+0615: 1F                    rar
+
+0616:               rng_narrow_check:                       ; offset=0616h
+0616: 67                    mov  h, a                ; h = current mask
+0617: A3                    ana  e                   ; a = mask & random_byte
+0618: BA                    cmp  d                   ; compare with max
+0619: CA 1F 06              jz   rng_done            ; if == max, accept
+061C: D2 14 06              jnc  rng_narrow_mask     ; if > max, narrow mask and retry
+                            ; if < max, fall through and accept
+061F:               rng_done:                               ; offset=061Fh
+061F: E1                    pop  h
+0620: D1                    pop  d
+0621: C9                    ret
+
+0622:               print_str:                              ; offset=0622h
+0622: C5                    push b
+0623: C3 2A 06              jmp  print_str_check
+
+0626:               print_str_loop:                         ; offset=0626h
+0626: 4F                    mov  c, a
+0627: CD 09 F8              call monitor_cout
+
+062A:               print_str_check:                        ; offset=062Ah
+062A: 7E                    mov  a, m
+062B: B7                    ora  a
+062C: 23                    inx  h
+062D: C2 26 06              jnz  print_str_loop
+0630: C1                    pop  b
+0631: C9                    ret
+
+0632:               start_game:                             ; offset=0632h
+0632: 21 ED 03              lxi  h, set_cursor_somewhere     ; CTP
+0635: CD 22 06              call print_str
+0638: 21 09 00              lxi  h, 9
+063B: CD 80 05              call set_cursor
+063E: 21 7F 11              lxi  h, screen_area
+0641: 11 40 06              lxi  d, 640h                     ; 64x25
+
+0644:               clean_screen_area_loop:                 ; offset=0644h
+0644: 36 20                 mvi  m, 20h                  ; ' '
+0646: 23                    inx  h
+0647: 1B                    dcx  d
+0648: 7A                    mov  a, d
+0649: B3                    ora  e
+064A: C2 44 06              jnz  clean_screen_area_loop
+064D: 21 0A 0E              lxi  h, packed_landscape     ; format: counter,    char, or 0xFF and ASCIIZ
+0650: 11 BF 13              lxi  d, 013bfh               ; unpacked_landscape
+
+0653:               landscape_unpack_loop_0:                ; offset=0653h
+0653: D5                    push d
+
+0654:               landscape_unpack_loop_1:                ; offset=0654h
+0654: 7E                    mov  a, m                        ; get a counter
+0655: 47                    mov  b, a                        ; b = counter
+0656: 23                    inx  h
+0657: B7                    ora  a
+0658: CA 98 06              jz   init_bullets_and_stones     ; if the counter is 0,    we done
+065B: FA 72 06              jm   landscape_print_till_0      ; the character    is negative?
+065E: 7E                    mov  a, m                        ; get a character
+065F: 23                    inx  h
+0660: B7                    ora  a
+0661: CA 81 06              jz   next_landspace_line         ; if the character    is 0, go to the    next line to print
+0664: 4F                    mov  c, a                        ; c = character
+
+0665:               landscape_char_loop:                    ; offset=0665h
+0665: 79                    mov  a, c
+0666: 12                    stax d
+0667: CD 09 F8              call monitor_cout
+066A: 13                    inx  d
+066B: 05                    dcr  b
+066C: C2 65 06              jnz  landscape_char_loop
+066F: C3 54 06              jmp  landscape_unpack_loop_1     ; get a counter
+
+0672:               landscape_print_till_0:                 ; offset=0672h
+0672: 7E                    mov  a, m                        ; get a character
+0673: 23                    inx  h
+0674: B7                    ora  a
+0675: CA 54 06              jz   landscape_unpack_loop_1     ; get a counter
+0678: 4F                    mov  c, a
+0679: 12                    stax d
+067A: CD 09 F8              call monitor_cout
+067D: 13                    inx  d
+067E: C3 72 06              jmp  landscape_print_till_0      ; get a    character
+
+0681:               next_landspace_line:                    ; offset=0681h
+0681: CD 8E 06              call print_crlf
+0684: D1                    pop  d
+0685: EB                    xchg
+0686: 01 40 00              lxi  b, 40h     ; '@'
+0689: 09                    dad  b
+068A: EB                    xchg
+068B: C3 53 06              jmp  landscape_unpack_loop_0
+
+068E:               print_crlf:                             ; offset=068Eh
+068E: 0E 0D                 mvi  c, 0Dh
+0690: CD 09 F8              call monitor_cout
+0693: 0E 0A                 mvi  c, 0Ah
+0695: C3 09 F8              jmp  monitor_cout
+
+0698:               init_bullets_and_stones:                ; offset=0698h
+0698: D1                    pop  d
+0699: 21 B7 0F              lxi  h, bullets_coords     ; 10 (0x0a), 4 bytes each, 40 bytes total
+069C: 22 A6 0F              shld free_bullet
+069F: 06 0A                 mvi  b, 0Ah                ; 10
+
+06A1:               zero_bullets_loop:                      ; offset=06A1h
+06A1: 36 00                 mvi  m, 0
+06A3: 11 04 00              lxi  d, 4
+06A6: 19                    dad  d
+06A7: 05                    dcr  b
+06A8: C2 A1 06              jnz  zero_bullets_loop
+06AB: 21 11 39              lxi  h, 3911h     ; H=39h (col 57), L=11h (row 17): first slot inside station
+06AE: 22 A4 0F              shld station_deposit_pos
+06B1: 21 DF 0F              lxi  h, stone_coords
+06B4: 06 14                 mvi  b, 14h       ; number of stones?
+
+06B6:               init_stones_loop:                       ; offset=06B6h
+06B6: CD B2 05              call init_stone
+06B9: E5                    push h
+06BA: 3E 08                 mvi  a, 8
+06BC: 6A                    mov  l, d
+06BD: CD A0 05              call screen_area_address
+06C0: 36 2A                 mvi  m, 2Ah     ; '*'
+06C2: 2E 08                 mvi  l, 8
+06C4: 62                    mov  h, d
+06C5: CD 80 05              call set_cursor
+06C8: 0E 2A                 mvi  c, 2Ah     ; '*'
+06CA: CD 09 F8              call monitor_cout
+06CD: E1                    pop  h
+06CE: 05                    dcr  b
+06CF: C2 B6 06              jnz  init_stones_loop
+06D2: 3E FF                 mvi  a, 0FFh
+06D4: 32 A2 0F              sta  hanging_human_y
+06D7: 3E 0A                 mvi  a, 0Ah
+06D9: 32 AE 0F              sta  lava_timer
+06DC: 3E 10                 mvi  a, 10h
+06DE: 32 AD 0F              sta  lava_level
+06E1: AF                    xra  a
+06E2: 32 AC 0F              sta  number_of_souls
+06E5: 32 19 0F              sta  saved_people
+06E8: 3E 03                 mvi  a, 3
+06EA: 32 A8 0F              sta  used_helicopters
+06ED: 3E 07                 mvi  a, 7
+06EF: 32 A9 0F              sta  human_hands_timer
+
+06F2:               loc_6F2:                                ; offset=06F2h
+06F2: 31 7F 11              lxi  sp, screen_area
+06F5: CD 12 F8              call monitor_kbhit
+06F8: B7                    ora  a
+06F9: CA FF 06              jz   loc_6FF     ; no_key_pressed
+06FC: CD 03 F8              call monitor_cin
+
+06FF:               loc_6FF:                                ; offset=06FFh
+06FF: AF                    xra  a
+0700: 32 9F 0F              sta  helicopter_orientation         ; 0 - left, FF - right
+0703: 32 A0 0F              sta  hanging_human
+0706: 3A A8 0F              lda  used_helicopters
+0709: 3D                    dcr  a
+070A: FA 96 0A              jm   game_over_screen
+070D: 32 A8 0F              sta  used_helicopters
+0710: 87                    add  a
+0711: C6 14                 adi  14h
+0713: 6F                    mov  l, a
+0714: 26 3A                 mvi  h, 3Ah                         ; ':'
+0716: CD 9B 05              call set_cursor_in_screen_arena     ; Y = l, X = h
+0719: 16 20                 mvi  d, 20h                         ; ' '
+071B: AF                    xra  a
+071C: CD 1D 0A              call write_heli_to_buffer
+071F: 21 CA 0D              lxi  h, clear_helicopter_left_msg
+0722: CD 22 06              call print_str
+0725: 21 0F 3A              lxi  h, 3A0Fh
+0728: 22 9C 0F              shld helicopter_xy
+072B: CD 9B 05              call set_cursor_in_screen_arena     ; Y = l, X = h
+072E: 16 4F                 mvi  d, 4Fh                         ; 'O'
+0730: AF                    xra  a
+0731: CD 1D 0A              call write_heli_to_buffer
+0734: 21 EA 0D              lxi  h, helicopter_left_msg
+0737: CD 22 06              call print_str
+073A: CD 68 0D              call beep
+
+073D:               game_loop:                              ; offset=073Dh
+073D: 21 B7 0F              lxi  h, bullets_coords     ; 10 (0x0a), 4 bytes each, 40 bytes total
+0740: 06 0A                 mvi  b, 0Ah
+
+0742:               loc_742:                                ; offset=0742h
+0742: CD 69 0B              call process_bullet
+0745: 05                    dcr  b
+0746: C2 42 07              jnz  loc_742
+0749: 21 DF 0F              lxi  h, stone_coords
+074C: 06 14                 mvi  b, 14h
+
+074E:               move_stones_loop:                       ; offset=074Eh
+074E: CD 17 05              call move_stone            ; disable stone development
+0751: 05                    dcr  b
+0752: C2 4E 07              jnz  move_stones_loop      ; disable stone development
+0755: 21 B7 0F              lxi  h, bullets_coords     ; 10 (0x0a), 4 bytes each, 40 bytes total
+0758: 06 0A                 mvi  b, 0Ah
+
+075A:               loc_75A:                                ; offset=075Ah
+075A: CD 69 0B              call process_bullet
+075D: 05                    dcr  b
+075E: C2 5A 07              jnz  loc_75A
+0761: 2A A2 0F              lhld hanging_human_y
+0764: 7D                    mov  a, l
+0765: B7                    ora  a
+0766: FA 9F 07              jm   loc_79F
+0769: EB                    xchg
+076A: 6A                    mov  l, d
+076B: CD A0 05              call screen_area_address
+076E: 36 20                 mvi  m, 20h     ; ' '
+0770: 01 40 00              lxi  b, 40h     ; '@'
+0773: 09                    dad  b
+0774: 7E                    mov  a, m
+0775: FE 20                 cpi  20h        ; ' '
+0777: C2 74 08              jnz  loc_874
+077A: 36 59                 mvi  m, 59h     ; 'Y'
+077C: EB                    xchg
+077D: CD 80 05              call set_cursor
+0780: 0E 20                 mvi  c, 20h     ; ' '
+0782: CD 09 F8              call monitor_cout
+0785: 0E 1A                 mvi  c, 1Ah
+0787: CD 09 F8              call monitor_cout
+078A: 0E 08                 mvi  c, 8
+078C: CD 09 F8              call monitor_cout
+078F: 7D                    mov  a, l
+0790: 0F                    rrc
+0791: 0E 4C                 mvi  c, 4Ch     ; 'L'
+0793: DA 98 07              jc   loc_798
+0796: 0E 4A                 mvi  c, 4Ah     ; 'J'
+
+0798:               loc_798:                                ; offset=0798h
+0798: CD 09 F8              call monitor_cout
+079B: 2C                    inr  l
+079C: 22 A2 0F              shld hanging_human_y
+
+079F:               loc_79F:                                ; offset=079Fh
+079F: CD 04 09              call process_helicopter
+07A2: 3A AC 0F              lda  number_of_souls
+07A5: B7                    ora  a
+07A6: CA C0 07              jz   skip_printing_souls
+07A9: 47                    mov  b, a
+07AA: 21 AF 0F              lxi  h, souls_positions
+
+07AD:               souls_print_loop:                       ; offset=07ADh
+07AD: 5E                    mov  e, m
+07AE: 23                    inx  h
+07AF: 56                    mov  d, m
+07B0: 23                    inx  h
+07B1: EB                    xchg
+07B2: CD 80 05              call set_cursor
+07B5: 21 C7 0D              lxi  h, soul_msg     ; "()"
+07B8: CD 22 06              call print_str
+07BB: EB                    xchg
+07BC: 05                    dcr  b
+07BD: C2 AD 07              jnz  souls_print_loop
+
+07C0:               skip_printing_souls:                    ; offset=07C0h
+07C0: 3A A9 0F              lda  human_hands_timer
+07C3: 3D                    dcr  a
+07C4: 32 A9 0F              sta  human_hands_timer
+07C7: C2 3D 07              jnz  game_loop
+07CA: 21 16 03              lxi  h, 316h
+07CD: CD F0 08              call animate_person_wave
+07D0: 21 14 0A              lxi  h, 0A14h
+07D3: CD F0 08              call animate_person_wave
+07D6: 21 11 13              lxi  h, 1311h
+07D9: CD F0 08              call animate_person_wave
+07DC: 21 0D 1C              lxi  h, 1C0Dh
+07DF: CD F0 08              call animate_person_wave
+07E2: 3E 07                 mvi  a, 7
+07E4: 32 A9 0F              sta  human_hands_timer
+07E7: 3A AC 0F              lda  number_of_souls
+07EA: B7                    ora  a
+07EB: CA F9 07              jz   skip_souls_collision_check
+07EE: 47                    mov  b, a
+07EF: 21 AF 0F              lxi  h, souls_positions
+
+07F2:               souls_collision_check:                  ; offset=07F2h
+07F2: CD F7 0C              call move_and_check_soul
+07F5: 05                    dcr  b
+07F6: C2 F2 07              jnz  souls_collision_check
+
+07F9:               skip_souls_collision_check:             ; offset=07F9h
+07F9: 3A AE 0F              lda  lava_timer
+07FC: 3D                    dcr  a
+07FD: C2 05 08              jnz  skip_lava
+0800: CD 2F 08              call process_lava               ; disable lava development
+0803: 3E 0A                 mvi  a, 0Ah
+
+0805:               skip_lava:                              ; offset=0805h
+0805: 32 AE 0F              sta  lava_timer
+0808: 3A A0 0F              lda  hanging_human
+080B: B7                    ora  a
+080C: CA 3D 07              jz   game_loop
+080F: 47                    mov  b, a
+0810: 3A A1 0F              lda  hanging_human_timer
+0813: 3D                    dcr  a
+0814: 32 A1 0F              sta  hanging_human_timer
+0817: CA DD 08              jz   hanging_human_timer_expired
+081A: FE 0A                 cpi  0Ah
+081C: D2 3D 07              jnc  game_loop
+081F: 78                    mov  a, b
+0820: FE 4A                 cpi  4Ah        ; 'J'
+0822: 3E 4C                 mvi  a, 4Ch     ; 'L'
+0824: CA 29 08              jz   swing_handing_man
+0827: 3E 4A                 mvi  a, 4Ah     ; 'J'
+
+0829:               swing_handing_man:                      ; offset=0829h
+0829: 32 A0 0F              sta  hanging_human
+082C: C3 3D 07              jmp  game_loop
+
+                    ; -----------------------------------------------------------------------
+                    ; process_lava -- advance lava one row down the volcano
+                    ; Decrements lava_level (which counts down from 0x10 toward 0).
+                    ; Uses lava_levels table: each entry is 5 bytes:
+                    ;   byte 0: count   - number of '+' chars to draw on this row
+                    ;   byte 1: row     - screen row (Y coordinate)
+                    ;   byte 2: column  - starting screen column (X coordinate)
+                    ;   byte 3: human_row - row of person on this ledge (0 = no person)
+                    ;   byte 4: human_col - column of person on this ledge
+                    ; If a person ('I' or 'Y') is at the human position, they are killed
+                    ; (erased, explosion triggered, soul created).
+                    ; Maps to Python's lava_level increment + person kill check.
+                    ; -----------------------------------------------------------------------
+082F:               process_lava:                                ; offset=082Fh
+082F: 3A AD 0F              lda  lava_level
+0832: 3D                    dcr  a                              ; advance lava one step
+0833: F8                    rm                                  ; if < 0, lava reached bottom, done
+0834: 32 AD 0F              sta  lava_level
+0837: 47                    mov  b, a
+0838: 87                    add  a
+0839: 87                    add  a
+083A: 80                    add  b                              ; a = lava_level * 5
+083B: 5F                    mov  e, a
+083C: 16 00                 mvi  d, 0                           ; de = lava_level * 5
+083E: 21 74 0D              lxi  h, lava_levels
+0841: 19                    dad  d                              ; hl = &lava_levels[lava_level]
+0842: 46                    mov  b, m                           ; b = count (number of '+' to draw)
+0843: 23                    inx  h
+0844: 5E                    mov  e, m                           ; e = row
+0845: 23                    inx  h
+0846: 56                    mov  d, m                           ; d = column
+0847: EB                    xchg                                ; hl = row,col for cursor; de = table ptr
+0848: CD 9B 05              call set_cursor_in_screen_arena     ; set cursor + get buffer ptr
+
+084B: 0E 2B                 mvi  c, 2Bh     ; '+' = lava character
+084D:               lava_fill_loop:                ; offset=084Dh
+084D: CD 09 F8              call monitor_cout     ; draw '+' on screen
+0850: 71                    mov  m, c             ; write '+' to screen buffer
+0851: 23                    inx  h
+0852: 05                    dcr  b
+0853: C2 4D 08              jnz  lava_fill_loop
+
+0856: CD 68 0D              call beep
+0859: EB                    xchg       ; hl = table ptr (at byte 2)
+085A: 23                    inx  h     ; hl -> byte 3 (human_row)
+085B: 7E                    mov  a, m
+085C: B7                    ora  a
+085D: C8                    rz         ; human_row == 0 means no person here
+
+                            ; Check if person is still alive at this position
+085E: 23                    inx  h                       ; hl -> byte 4 (human_col)
+085F: 56                    mov  d, m                    ; d = human_col
+0860: 5F                    mov  e, a                    ; e = human_row
+0861: 6A                    mov  l, d
+0862: CD A0 05              call screen_area_address     ; get buffer addr for person position
+0865: 7E                    mov  a, m
+0866: FE 59                 cpi  59h                     ; is it 'Y' (person waving)?
+0868: CA 6E 08              jz   lava_hits_human
+086B: FE 49                 cpi  49h                     ; is it 'I' (person standing)?
+086D: C0                    rnz                          ; neither -> person already rescued/dead
+
+086E:               lava_hits_human:              ; offset=086Eh
+086E: 36 20                 mvi  m, 20h          ; erase person from screen buffer
+0870: EB                    xchg                 ; hl = person row,col
+0871: C3 94 08              jmp  kill_person     ; trigger explosion + create soul
+
+0874:               loc_874:                                ; offset=0874h
+0874: CD 68 0D              call beep
+0877: EB                    xchg
+0878: FE 59                 cpi  59h     ; 'Y'
+087A: CC 8D 08              cz   erase_and_kill_person
+087D: FE 49                 cpi  49h     ; 'I'
+087F: CC 8D 08              cz   erase_and_kill_person
+0882: 3E FF                 mvi  a, 0FFh
+0884: 32 A2 0F              sta  hanging_human_y
+0887: CD 94 08              call kill_person
+088A: C3 9F 07              jmp  loc_79F
+
+088D:               erase_and_kill_person:                  ; offset=088Dh
+088D: EB                    xchg
+088E: 36 20                 mvi  m, 20h     ; ' '
+0890: EB                    xchg
+0891: C3 94 08              jmp  kill_person
+
+                    ; kill_person -- explosion + slow_explosion + create_soul
+                    ; Input: HL = position of dying person
+0894:               kill_person:     ; offset=0894h
+0894: C5                    push b
+0895: CD BF 0C              call explosion
+0898: CD DB 0C              call slow_explosion
+089B: CD A0 08              call create_soul
+089E: C1                    pop  b
+089F: C9                    ret
+
+                    ; -----------------------------------------------------------------------
+                    ; create_soul -- add a soul "()" to the souls array and draw it
+                    ; Input: HL = position (row, col) where person died
+                    ; Increments number_of_souls, stores position in souls_positions array.
+                    ; Checks if cell to the right is free to avoid overlapping terrain.
+                    ; If number_of_souls + saved_people == 4 (all people accounted for),
+                    ; triggers game over via game_over_screen.
+                    ; -----------------------------------------------------------------------
+08A0:               create_soul:                          ; offset=08A0h
+08A0: E5                    push h
+08A1: EB                    xchg
+08A2: 3A AC 0F              lda  number_of_souls
+08A5: 3C                    inr  a
+08A6: 32 AC 0F              sta  number_of_souls
+08A9: 3D                    dcr  a
+08AA: 87                    add  a
+08AB: 4F                    mov  c, a
+08AC: 06 00                 mvi  b, 0
+08AE: 7B                    mov  a, e
+08AF: 6A                    mov  l, d
+08B0: CD A0 05              call screen_area_address
+08B3: 23                    inx  h
+08B4: 7E                    mov  a, m
+08B5: FE 20                 cpi  20h     ; ' '
+08B7: CA BB 08              jz   soul_pos_ok
+08BA: 15                    dcr  d
+
+08BB:               soul_pos_ok:                            ; offset=08BBh
+08BB: 21 AF 0F              lxi  h, 0FAFh
+08BE: 09                    dad  b
+08BF: 73                    mov  m, e
+08C0: 23                    inx  h
+08C1: 72                    mov  m, d
+08C2: EB                    xchg
+08C3: CD 80 05              call set_cursor
+08C6: 21 C7 0D              lxi  h, soul_msg     ; "()"
+08C9: CD 22 06              call print_str
+08CC: CD 68 0D              call beep
+08CF: 3A AC 0F              lda  number_of_souls
+08D2: 21 19 0F              lxi  h, 0F19h
+08D5: 86                    add  m
+08D6: E1                    pop  h
+08D7: FE 04                 cpi  4
+08D9: C0                    rnz
+08DA: C3 96 0A              jmp  game_over_screen
+
+08DD:               hanging_human_timer_expired:            ; offset=08DDh
+08DD: AF                    xra  a
+08DE: 32 A0 0F              sta  hanging_human
+08E1: 2A 9C 0F              lhld helicopter_xy
+08E4: 2C                    inr  l
+08E5: 22 A2 0F              shld hanging_human_y
+08E8: CD 9E 05              call screen_area_address_hl
+08EB: 36 59                 mvi  m, 59h     ; 'Y'
+08ED: C3 3D 07              jmp  game_loop
+
+                    ; -----------------------------------------------------------------------
+                    ; animate_person_wave -- toggle person between 'I' (arms down) and 'Y'
+                    ;   (arms up) to create waving animation. Called every 7 game ticks.
+                    ; Input:  HL = person screen position (L=row, H=column)
+                    ; If cell is 'I', change to 'Y'. If 'Y', change to 'I'. Otherwise no-op.
+                    ; Maps to Python's wave_toggle alternating between 'I' and 'Y'.
+                    ; -----------------------------------------------------------------------
+08F0:               animate_person_wave:                         ; offset=08F0h
+08F0: CD 9B 05              call set_cursor_in_screen_arena     ; set cursor + get screen buffer addr
+08F3: 7E                    mov  a, m                           ; read current character at person position
+08F4: 0E 59                 mvi  c, 59h                         ; 'Y' (arms up)
+08F6: FE 49                 cpi  49h                            ; is it 'I'?
+08F8: CA 00 09              jz   do_person_wave                 ; yes -> change to 'Y'
+08FB: 0E 49                 mvi  c, 49h                         ; 'I' (arms down)
+08FD: FE 59                 cpi  59h                            ; is it 'Y'?
+08FF: C0                    rnz                                 ; neither 'I' nor 'Y' -> person gone, skip
+
+0900:               do_person_wave:                ; offset=0900h
+0900: 71                    mov  m, c             ; update screen buffer
+0901: C3 09 F8              jmp  monitor_cout     ; print new character to screen
+
+                    ; -----------------------------------------------------------------------
+                    ; process_helicopter -- handle keyboard input, move helicopter, check collisions
+                    ; Reads keyboard for directional keys and fire button.
+                    ; Movement: updates helicopter_xy, checks if new position is clear
+                    ;   (3 cells for body row + 3 cells for rotor row must all be spaces).
+                    ; If blocked by terrain/lava/station, triggers collision_condition.
+                    ; If person (I/Y) is directly below cockpit, picks them up.
+                    ; Fire: creates a bullet entry in bullets_coords array.
+                    ; Maps to Python's helicopter update + pickup + collision logic.
+                    ; -----------------------------------------------------------------------
+0904:               process_helicopter:                               ; offset=0904h
+0904: 3A 9F 0F              lda  helicopter_orientation              ; 0 - left, FF - right
+0907: 32 9E 0F              sta  helicopter_orientation_original
+090A: 2A 9C 0F              lhld helicopter_xy
+090D: 22 9A 0F              shld prev_helicopter_xy
+0910: EB                    xchg
+0911: 01 00 00              lxi  b, 0
+0914: CD 12 F8              call monitor_kbhit
+0917: B7                    ora  a
+0918: CA 52 09              jz   heli_bounds_check
+091B: CD 03 F8              call monitor_cin
+091E: 21 14 0F              lxi  h, control_codes
+0921: BE                    cmp  m
+0922: CA ED 09              jz   move_up
+0925: 23                    inx  h
+0926: BE                    cmp  m
+0927: CA 49 09              jz   move_left
+092A: 23                    inx  h
+092B: BE                    cmp  m
+092C: CA E6 09              jz   move_down
+092F: 23                    inx  h
+0930: BE                    cmp  m
+0931: CA F5 09              jz   move_right
+0934: 2A A6 0F              lhld free_bullet
+0937: 7E                    mov  a, m
+0938: B7                    ora  a
+0939: C0                    rnz                                      ; if no free cell for a bullet -> exit
+093A: 3A 9E 0F              lda  helicopter_orientation_original     ; 0 - left, FF - right
+093D: 2F                    cma
+093E: 47                    mov  b, a                                ; b = bullet X direction: FF (-1) left, 1 right
+093F: F6 01                 ori  1
+0941: 77                    mov  m, a
+0942: 23                    inx  h
+0943: 70                    mov  m, b
+0944: 23                    inx  h
+0945: 73                    mov  m, e
+0946: 23                    inx  h
+0947: 72                    mov  m, d
+0948: C9                    ret
+
+0949:               move_left:                              ; offset=0949h
+0949: 14                    inr  d
+094A: 01 01 00              lxi  b, 1
+094D: 3E FF                 mvi  a, 0FFh
+
+094F:               heli_set_orientation:                   ; offset=094Fh
+094F: 32 9F 0F              sta  helicopter_orientation     ; 0 - left, FF - right
+
+0952:               heli_bounds_check:                      ; offset=0952h
+0952: 7A                    mov  a, d
+0953: 3D                    dcr  a
+0954: FE 3D                 cpi  3Dh                        ; '='
+0956: D0                    rnc
+0957: 7B                    mov  a, e
+0958: B7                    ora  a
+0959: C8                    rz
+095A: EB                    xchg
+095B: 22 9C 0F              shld helicopter_xy
+095E: 2A 9A 0F              lhld prev_helicopter_xy
+0961: CD 9E 05              call screen_area_address_hl
+0964: E5                    push h
+0965: 16 20                 mvi  d, 20h                     ; ' '
+0967: 3A 9E 0F              lda  helicopter_orientation_original
+096A: CD 1D 0A              call write_heli_to_buffer
+096D: E1                    pop  h
+096E: 09                    dad  b
+096F: E5                    push h
+0970: 3A 9F 0F              lda  helicopter_orientation     ; 0 - left, FF - right
+0973: B7                    ora  a
+0974: 3E 20                 mvi  a, 20h                     ; ' '
+0976: C2 38 0A              jnz  heli_check_right
+0979: CD 48 0A              call check_3_cells_empty
+097C: C2 F2 0B              jnz  heli_person_in_way
+097F: 11 BD FF              lxi  d, 0FFBDh
+
+0982:               heli_check_body:                        ; offset=0982h
+0982: 19                    dad  d
+0983: CD 48 0A              call check_3_cells_empty
+0986: C2 F2 0B              jnz  heli_person_in_way
+0989: 11 7F 00              lxi  d, 7Fh
+098C: 19                    dad  d
+098D: 3A A0 0F              lda  hanging_human
+0990: 47                    mov  b, a
+0991: B7                    ora  a
+0992: CA 50 0A              jz   heli_check_pickup
+0995: 7E                    mov  a, m
+0996: FE 20                 cpi  20h        ; ' '
+0998: C2 F2 0B              jnz  heli_person_in_way
+099B: 11 40 00              lxi  d, 40h     ; '@'
+099E: 19                    dad  d
+099F: 7E                    mov  a, m
+09A0: FE 3D                 cpi  3Dh        ; '='
+09A2: CC 70 0A              cz   deposit_person
+
+09A5:               heli_draw_and_print:                    ; offset=09A5h
+09A5: E1                    pop  h
+09A6: 16 4F                 mvi  d, 4Fh                     ; 'O'
+09A8: 3A 9F 0F              lda  helicopter_orientation     ; 0 - left, FF - right
+09AB: CD 1D 0A              call write_heli_to_buffer
+09AE: 2A 9A 0F              lhld prev_helicopter_xy
+09B1: CD 80 05              call set_cursor
+09B4: 3A 9E 0F              lda  helicopter_orientation_original
+09B7: B7                    ora  a
+09B8: 21 CA 0D              lxi  h, clear_helicopter_left_msg
+09BB: C4 68 0A              cnz  clear_helicopter_right_address
+09BE: CD 22 06              call print_str
+09C1: 05                    dcr  b
+09C2: FA CA 09              jm   heli_print_new
+09C5: 0E 20                 mvi  c, 20h                     ; ' '
+09C7: CD 09 F8              call monitor_cout
+
+09CA:               heli_print_new:                         ; offset=09CAh
+09CA: 2A 9C 0F              lhld helicopter_xy
+09CD: CD 80 05              call set_cursor
+09D0: 3A 9F 0F              lda  helicopter_orientation     ; 0 - left, FF - right
+09D3: B7                    ora  a
+09D4: 21 EA 0D              lxi  h, helicopter_left_msg
+09D7: C4 6C 0A              cnz  helicopter_right_address
+09DA: CD 22 06              call print_str
+09DD: 3A A0 0F              lda  hanging_human
+09E0: B7                    ora  a
+09E1: C8                    rz
+09E2: 4F                    mov  c, a
+09E3: C3 09 F8              jmp  monitor_cout
+
+09E6:               move_down:                              ; offset=09E6h
+09E6: 1D                    dcr  e
+09E7: 01 C0 FF              lxi  b, 0FFC0h
+09EA: C3 52 09              jmp  heli_bounds_check
+
+09ED:               move_up:                                ; offset=09EDh
+09ED: 15                    dcr  d
+09EE: 01 FF FF              lxi  b, 0FFFFh
+09F1: AF                    xra  a
+09F2: C3 4F 09              jmp  heli_set_orientation
+
+09F5:               move_right:                             ; offset=09F5h
+09F5: 01 40 00              lxi  b, 40h     ; '@'
+09F8: 1C                    inr  e
+09F9: 7B                    mov  a, e
+09FA: 6A                    mov  l, d
+09FB: CD A0 05              call screen_area_address
+09FE: 7E                    mov  a, m
+09FF: FE 3D                 cpi  3Dh        ; '='
+0A01: C2 52 09              jnz  heli_bounds_check
+0A04: 1D                    dcr  e
+0A05: 0E 00                 mvi  c, 0
+0A07: C3 52 09              jmp  heli_bounds_check
+
+                    ; write_3_to_buffer -- write byte A to 3 consecutive screen buffer cells
+                    ; Used to fill rotor or body line of helicopter in screen buffer.
+0A0A:               write_3_to_buffer:     ; offset=0A0Ah
+0A0A: 77                    mov  m, a
+0A0B: 23                    inx  h
+0A0C: 77                    mov  m, a
+0A0D: 23                    inx  h
+0A0E: 77                    mov  m, a
+0A0F: C9                    ret
+
+0A10:               heli_write_right:                       ; offset=0A10h
+0A10: 11 FE FF              lxi  d, 0FFFEh
+0A13: 19                    dad  d
+0A14: CD 0A 0A              call write_3_to_buffer
+0A17: 11 BF FF              lxi  d, 0FFBFh
+0A1A: C3 28 0A              jmp  heli_write_rotor
+
+                    ; -----------------------------------------------------------------------
+                    ; write_heli_to_buffer -- write helicopter sprite to screen buffer
+                    ; Input: HL = screen buffer address at cockpit position
+                    ;        A (on entry via ORA A): 0=left-facing, nonzero=right-facing
+                    ;        D = character to write (0x20=space for erase, 0x4F=O for draw)
+                    ; Writes 3 chars to body row and 3 chars to rotor row in buffer.
+                    ; If hanging_human is active, also writes person char below cockpit.
+                    ; -----------------------------------------------------------------------
+0A1D:               write_heli_to_buffer:     ; offset=0A1Dh
+0A1D: B7                    ora  a
+0A1E: 7A                    mov  a, d
+0A1F: C2 10 0A              jnz  heli_write_right
+0A22: CD 0A 0A              call write_3_to_buffer
+0A25: 11 BD FF              lxi  d, 0FFBDh
+
+0A28:               heli_write_rotor:                       ; offset=0A28h
+0A28: 19                    dad  d
+0A29: CD 0A 0A              call write_3_to_buffer
+0A2C: 11 7F 00              lxi  d, 7Fh
+0A2F: 19                    dad  d
+0A30: 57                    mov  d, a
+0A31: 3A A0 0F              lda  hanging_human
+0A34: B7                    ora  a
+0A35: C8                    rz
+0A36: 72                    mov  m, d
+0A37: C9                    ret
+
+0A38:               heli_check_right:                       ; offset=0A38h
+0A38: 11 FE FF              lxi  d, 0FFFEh
+0A3B: 19                    dad  d
+0A3C: CD 48 0A              call check_3_cells_empty
+0A3F: C2 F2 0B              jnz  heli_person_in_way
+0A42: 11 BF FF              lxi  d, 0FFBFh
+0A45: C3 82 09              jmp  heli_check_body
+
+                    ; check_3_cells_empty -- check if 3 consecutive screen buffer cells are space
+                    ; Input: A = 0x20 (space), HL = buffer address
+                    ; Output: Z flag set if all 3 cells are space (path clear for helicopter)
+0A48:               check_3_cells_empty:     ; offset=0A48h
+0A48: BE                    cmp  m
+0A49: C0                    rnz
+0A4A: 23                    inx  h
+0A4B: BE                    cmp  m
+0A4C: C0                    rnz
+0A4D: 23                    inx  h
+0A4E: BE                    cmp  m
+0A4F: C9                    ret
+
+0A50:               heli_check_pickup:                      ; offset=0A50h
+0A50: 7E                    mov  a, m
+0A51: FE 49                 cpi  49h     ; 'I'
+0A53: CA 5B 0A              jz   heli_pickup_person
+0A56: FE 59                 cpi  59h     ; 'Y'
+0A58: C2 A5 09              jnz  heli_draw_and_print
+
+0A5B:               heli_pickup_person:                     ; offset=0A5Bh
+0A5B: 3E 49                 mvi  a, 49h     ; 'I'
+0A5D: 32 A0 0F              sta  hanging_human
+0A60: 3E 28                 mvi  a, 28h     ; '('
+0A62: 32 A1 0F              sta  hanging_human_timer
+0A65: C3 A5 09              jmp  heli_draw_and_print
+
+0A68:               clear_helicopter_right_address:         ; offset=0A68h
+0A68: 21 DA 0D              lxi  h, clear_helicopter_right_msg
+0A6B: C9                    ret
+
+0A6C:               helicopter_right_address:               ; offset=0A6Ch
+0A6C: 21 FA 0D              lxi  h, helicopter_right_msg
+0A6F: C9                    ret
+
+                    ; -----------------------------------------------------------------------
+                    ; deposit_person -- drop rescued person at station
+                    ; Called when helicopter with hanging person moves over station roof (=).
+                    ; Places 'I' in station, increments saved_people counter.
+                    ; If all 4 people saved, triggers game over (win).
+                    ; -----------------------------------------------------------------------
+0A70:               deposit_person:                              ; offset=0A70h
+0A70: 2A A4 0F              lhld station_deposit_pos
+0A73: 24                    inr  h
+0A74: 22 A4 0F              shld station_deposit_pos
+0A77: 25                    dcr  h
+0A78: CD 9B 05              call set_cursor_in_screen_arena     ; Y = l, X = h
+0A7B: 0E 49                 mvi  c, 49h                         ; 'I'
+0A7D: 71                    mov  m, c
+0A7E: CD 09 F8              call monitor_cout
+0A81: CD 68 0D              call beep
+0A84: AF                    xra  a
+0A85: 32 A0 0F              sta  hanging_human
+0A88: 3A 19 0F              lda  saved_people
+0A8B: 3C                    inr  a
+0A8C: 32 19 0F              sta  saved_people
+0A8F: 21 AC 0F              lxi  h, 0FACh
+0A92: 86                    add  m
+0A93: FE 04                 cpi  4
+0A95: C0                    rnz
+
+0A96:               game_over_screen:                       ; offset=0A96h
+0A96: 31 7F 11              lxi  sp, screen_area
+0A99: 21 E9 03              lxi  h, 3E9h
+0A9C: CD 22 06              call print_str
+0A9F: 3A 19 0F              lda  saved_people
+0AA2: B7                    ora  a
+0AA3: CA 00 01              jz   start
+0AA6: FE 04                 cpi  4
+0AA8: C2 BF 0A              jnz  loc_ABF
+0AAB: 21 76 04              lxi  h, you_best_rescuer_msg
+0AAE: CD 22 06              call print_str
+0AB1: 3A A8 0F              lda  used_helicopters
+0AB4: FE 03                 cpi  3
+0AB6: C2 BF 0A              jnz  loc_ABF
+0AB9: 21 B3 04              lxi  h, you_good_pilot_msg
+0ABC: CD 22 06              call print_str
+
+0ABF:               loc_ABF:                                ; offset=0ABFh
+0ABF: 21 1A 0F              lxi  h, 0F1Ah
+0AC2: 06 05                 mvi  b, 5
+
+0AC4:               loc_AC4:                                ; offset=0AC4h
+0AC4: 3A 19 0F              lda  saved_people
+0AC7: BE                    cmp  m
+0AC8: CA DF 0A              jz   loc_ADF
+0ACB: D2 EB 0A              jnc  loc_AEB
+0ACE: 7E                    mov  a, m
+0ACF: FE 05                 cpi  5
+0AD1: D2 5F 0B              jnc  loc_B5F
+
+0AD4:               loc_AD4:                                ; offset=0AD4h
+0AD4: 11 19 00              lxi  d, 19h
+0AD7: 19                    dad  d
+0AD8: 05                    dcr  b
+0AD9: C2 C4 0A              jnz  loc_AC4
+0ADC: C3 00 01              jmp  start
+
+0ADF:               loc_ADF:                                ; offset=0ADFh
+0ADF: 3A A8 0F              lda  used_helicopters
+0AE2: 23                    inx  h
+0AE3: BE                    cmp  m
+0AE4: 2B                    dcx  h
+0AE5: CA D4 0A              jz   loc_AD4
+0AE8: DA D4 0A              jc   loc_AD4
+
+0AEB:               loc_AEB:                                ; offset=0AEBh
+0AEB: 05                    dcr  b
+0AEC: E5                    push h
+0AED: 21 7D 0F              lxi  h, 0F7Dh
+0AF0: 11 96 0F              lxi  d, 0F96h
+
+0AF3:               loc_AF3:                                ; offset=0AF3h
+0AF3: 0E 19                 mvi  c, 19h
+
+0AF5:               loc_AF5:                                ; offset=0AF5h
+0AF5: 7E                    mov  a, m
+0AF6: 12                    stax d
+0AF7: 2B                    dcx  h
+0AF8: 1B                    dcx  d
+0AF9: 0D                    dcr  c
+0AFA: C2 F5 0A              jnz  loc_AF5
+0AFD: 05                    dcr  b
+0AFE: C2 F3 0A              jnz  loc_AF3
+
+0B01:               loc_B01:                                ; offset=0B01h
+0B01: E1                    pop  h
+0B02: E5                    push h
+0B03: 06 18                 mvi  b, 18h
+
+0B05:               loc_B05:                                ; offset=0B05h
+0B05: 36 20                 mvi  m, 20h     ; ' '
+0B07: 23                    inx  h
+0B08: 05                    dcr  b
+0B09: C2 05 0B              jnz  loc_B05
+0B0C: 36 00                 mvi  m, 0
+0B0E: 21 91 04              lxi  h, your_name_history_msg
+0B11: CD 22 06              call print_str
+0B14: E1                    pop  h
+0B15: 3A 19 0F              lda  saved_people
+0B18: 77                    mov  m, a
+0B19: 23                    inx  h
+0B1A: 3A A8 0F              lda  used_helicopters
+0B1D: 77                    mov  m, a
+0B1E: 23                    inx  h
+0B1F: 06 00                 mvi  b, 0
+
+0B21:               loc_B21:                                ; offset=0B21h
+0B21: CD 03 F8              call monitor_cin
+0B24: 4F                    mov  c, a
+0B25: FE 08                 cpi  8
+0B27: CA 43 0B              jz   loc_B43
+0B2A: FE 0D                 cpi  0Dh
+0B2C: CA 00 01              jz   start
+0B2F: FE 20                 cpi  20h     ; ' '
+0B31: DA 57 0B              jc   loc_B57
+0B34: 78                    mov  a, b
+0B35: FE 17                 cpi  17h
+0B37: CA 57 0B              jz   loc_B57
+0B3A: 04                    inr  b
+0B3B: 71                    mov  m, c
+0B3C: 23                    inx  h
+0B3D: CD 09 F8              call monitor_cout
+0B40: C3 21 0B              jmp  loc_B21
+
+0B43:               loc_B43:                                ; offset=0B43h
+0B43: 78                    mov  a, b
+0B44: B7                    ora  a
+0B45: CA 57 0B              jz   loc_B57
+0B48: 05                    dcr  b
+0B49: 2B                    dcx  h
+0B4A: 36 20                 mvi  m, 20h                     ; ' '
+0B4C: EB                    xchg
+0B4D: 21 DB 04              lxi  h, back_space_back_msg     ; "\b \b"
+0B50: CD 22 06              call print_str
+0B53: EB                    xchg
+0B54: C3 21 0B              jmp  loc_B21
+
+0B57:               loc_B57:                                ; offset=0B57h
+0B57: 0E 07                 mvi  c, 7
+0B59: CD 09 F8              call monitor_cout
+0B5C: C3 21 0B              jmp  loc_B21
+
+0B5F:               loc_B5F:                                ; offset=0B5Fh
+0B5F: E5                    push h
+0B60: 11 19 00              lxi  d, 19h
+0B63: 19                    dad  d
+0B64: 36 FF                 mvi  m, 0FFh
+0B66: C3 01 0B              jmp  loc_B01
+
+                    ; -----------------------------------------------------------------------
+                    ; process_bullet -- update one bullet position
+                    ; Input: HL = pointer to 4-byte bullet entry
+                    ; Output: HL = pointer past entry (+4)
+                    ;
+                    ; Bullet structure (4 bytes):
+                    ;   byte 0: active flag / step direction (0=free, 1/-1=direction)
+                    ;   byte 1: X delta per step (+1 or -1)
+                    ;   byte 2: current row (Y)
+                    ;   byte 3: current column (X)
+                    ;
+                    ; Each tick: erases '-' at old position, advances X by delta.
+                    ; Collision checks at new position:
+                    ;   'O' (helicopter) -> skip erase, advance cursor, recheck
+                    ;   '*' (stone) -> replace with '+' (destroyed stone)
+                    ;   'I'/'Y' (person) -> kill person, free bullet
+                    ;   space -> draw '-' at new position
+                    ;   anything else -> free bullet (hit terrain/wall)
+                    ; Bullets move 2 cells per game tick (called twice in game_loop).
+                    ; -----------------------------------------------------------------------
+0B69:               process_bullet:                         ; offset=0B69h
+0B69: C5                    push b
+0B6A: 4E                    mov  c, m                  ; bullet's step X
+0B6B: 23                    inx  h
+0B6C: 46                    mov  b, m
+0B6D: 23                    inx  h
+0B6E: 5E                    mov  e, m
+0B6F: 23                    inx  h
+0B70: 56                    mov  d, m                  ; de = bullet XY
+0B71: E5                    push h
+0B72: 79                    mov  a, c
+0B73: B7                    ora  a
+0B74: CA D5 0B              jz   free_bullet_entry     ; if the bullet entry is zero, exit
+0B77: EB                    xchg
+0B78: CD 80 05              call set_cursor
+0B7B: EB                    xchg
+0B7C: 6A                    mov  l, d
+0B7D: 7B                    mov  a, e
+0B7E: CD A0 05              call screen_area_address
+0B81: 7E                    mov  a, m
+0B82: FE 4F                 cpi  4Fh                   ; 'O'
+0B84: CA E3 0B              jz   bullet_skip_heli
+0B87: 36 20                 mvi  m, 20h                ; ' '
+0B89: C5                    push b
+0B8A: 0E 20                 mvi  c, 20h                ; ' '
+0B8C: CD 09 F8              call monitor_cout
+0B8F: C1                    pop  b
+0B90: FE 2D                 cpi  2Dh                   ; '-'
+0B92: C2 D5 0B              jnz  free_bullet_entry     ; hl    -= 4
+
+0B95:               bullet_advance:                         ; offset=0B95h
+0B95: 7A                    mov  a, d                  ; recalculate bullet X
+0B96: 81                    add  c
+0B97: FE 40                 cpi  40h                   ; '@'
+0B99: D2 D5 0B              jnc  free_bullet_entry     ; if X >= 64 (0x40) -> free the bullet entry
+0B9C: 57                    mov  d, a                  ; d = new bullet X
+0B9D: 09                    dad  b                     ; hl = new bullet screen address
+0B9E: 0D                    dcr  c
+0B9F: CA AA 0B              jz   bullet_check_new_pos
+0BA2: 0E 08                 mvi  c, 8
+0BA4: CD 09 F8              call monitor_cout
+0BA7: CD 09 F8              call monitor_cout
+
+0BAA:               bullet_check_new_pos:                   ; offset=0BAAh
+0BAA: 7E                    mov  a, m
+0BAB: FE 4F                 cpi  4Fh                   ; 'O'
+0BAD: CA 27 0C              jz   collision_condition
+0BB0: FE 2A                 cpi  2Ah                   ; '*'
+0BB2: CA ED 0B              jz   bullet_hits_stone
+0BB5: FE 49                 cpi  49h                   ; 'I'
+0BB7: CA CF 0B              jz   bullet_hits_person
+0BBA: FE 59                 cpi  59h                   ; 'Y'
+0BBC: CA CF 0B              jz   bullet_hits_person
+0BBF: FE 20                 cpi  20h                   ; ' '
+0BC1: C2 D5 0B              jnz  free_bullet_entry     ; hl -= 4
+0BC4: 0E 2D                 mvi  c, 2Dh                ; '-'
+
+0BC6:               bullet_draw:                            ; offset=0BC6h
+0BC6: 71                    mov  m, c
+0BC7: CD 09 F8              call monitor_cout
+0BCA: E1                    pop  h
+0BCB: 72                    mov  m, d
+
+0BCC:               bullet_done:                            ; offset=0BCCh
+0BCC: 23                    inx  h
+0BCD: C1                    pop  b
+0BCE: C9                    ret
+
+0BCF:               bullet_hits_person:                     ; offset=0BCFh
+0BCF: 36 20                 mvi  m, 20h     ; ' '
+0BD1: EB                    xchg
+0BD2: CD 94 08              call kill_person
+
+0BD5:               free_bullet_entry:                      ; offset=0BD5h
+0BD5: 21 FD FF              lxi  h, 0FFFDh     ; hl -= 4
+0BD8: D1                    pop  d
+0BD9: 19                    dad  d
+0BDA: 36 00                 mvi  m, 0
+0BDC: 22 A6 0F              shld free_bullet
+0BDF: EB                    xchg
+0BE0: C3 CC 0B              jmp  bullet_done
+
+0BE3:               bullet_skip_heli:                       ; offset=0BE3h
+0BE3: C5                    push b
+0BE4: 0E 18                 mvi  c, 18h
+0BE6: CD 09 F8              call monitor_cout
+0BE9: C1                    pop  b
+0BEA: C3 95 0B              jmp  bullet_advance     ; recalculate bullet X
+
+0BED:               bullet_hits_stone:                      ; offset=0BEDh
+0BED: 0E 2B                 mvi  c, 2Bh     ; '+'
+0BEF: C3 C6 0B              jmp  bullet_draw
+
+0BF2:               heli_person_in_way:                     ; offset=0BF2h
+0BF2: 7E                    mov  a, m
+0BF3: 06 00                 mvi  b, 0
+0BF5: FE 49                 cpi  49h     ; 'I'
+0BF7: CA FF 0B              jz   loc_BFF
+0BFA: FE 59                 cpi  59h     ; 'Y'
+0BFC: C2 1E 0C              jnz  heli_restore_and_crash
+
+0BFF:               loc_BFF:                                ; offset=0BFFh
+0BFF: 36 20                 mvi  m, 20h               ; ' '
+0C01: 3A 9C 0F              lda  helicopter_xy
+0C04: 2F                    cma
+0C05: C6 18                 adi  18h
+0C07: 57                    mov  d, a
+0C08: 87                    add  a
+0C09: 87                    add  a
+0C0A: 82                    add  d
+0C0B: 4F                    mov  c, a
+0C0C: 21 77 0D              lxi  h, lava_levels+3     ; format: counter, y, x, human_y, human_x
+0C0F: 09                    dad  b
+0C10: 5E                    mov  e, m
+0C11: 23                    inx  h
+0C12: 56                    mov  d, m
+0C13: EB                    xchg
+0C14: CD 80 05              call set_cursor
+0C17: 0E 20                 mvi  c, 20h               ; ' '
+0C19: CD 09 F8              call monitor_cout
+0C1C: 06 FF                 mvi  b, 0FFh
+
+0C1E:               heli_restore_and_crash:                 ; offset=0C1Eh
+0C1E: 2A 9A 0F              lhld prev_helicopter_xy
+0C21: 3A 9E 0F              lda  helicopter_orientation_original
+0C24: C3 2F 0C              jmp  heli_crash_common
+
+0C27:               collision_condition:                    ; offset=0C27h
+0C27: 2A 9C 0F              lhld helicopter_xy
+0C2A: 3A 9F 0F              lda  helicopter_orientation     ; 0 - left, FF - right
+0C2D: 06 00                 mvi  b, 0
+
+0C2F:               heli_crash_common:                      ; offset=0C2Fh
+0C2F: C5                    push b
+0C30: 47                    mov  b, a
+0C31: CD 80 05              call set_cursor
+0C34: EB                    xchg
+0C35: 78                    mov  a, b
+0C36: B7                    ora  a
+0C37: 21 CA 0D              lxi  h, clear_helicopter_left_msg
+0C3A: C4 68 0A              cnz  clear_helicopter_right_address
+0C3D: CD 22 06              call print_str
+0C40: 3A A0 0F              lda  hanging_human
+0C43: B7                    ora  a
+0C44: CA 4C 0C              jz   heli_crash_clear_buffer
+0C47: 0E 20                 mvi  c, 20h     ; ' '
+0C49: CD 09 F8              call monitor_cout
+
+0C4C:               heli_crash_clear_buffer:                ; offset=0C4Ch
+0C4C: 7B                    mov  a, e
+0C4D: 6A                    mov  l, d
+0C4E: CD A0 05              call screen_area_address
+0C51: 16 20                 mvi  d, 20h     ; ' '
+0C53: 78                    mov  a, b
+0C54: CD 1D 0A              call write_heli_to_buffer
+0C57: CD 68 0D              call beep
+0C5A: 2A 9C 0F              lhld helicopter_xy
+0C5D: CD BF 0C              call explosion
+0C60: C1                    pop  b
+0C61: 3A A0 0F              lda  hanging_human
+0C64: B0                    ora  b
+0C65: CA F2 06              jz   loc_6F2
+0C68: CD DB 0C              call slow_explosion
+0C6B: 2A 9A 0F              lhld prev_helicopter_xy
+0C6E: CD A0 08              call create_soul
+0C71: C3 F2 06              jmp  loc_6F2
+
+                    ; -----------------------------------------------------------------------
+                    ; Explosion animation system
+                    ;
+                    ; explosion_plot_dot -- plot or erase one dot at offset (h,l) from center
+                    ; Input: DE = center (row,col), H = X offset, L = Y offset, C = char (or 0)
+                    ; If C=0, reads existing char from screen buffer (restore mode).
+                    ; Bounds-checks: col < 64, row < 25. Skips if 'O' (helicopter) at target.
+                    ; -----------------------------------------------------------------------
+0C74:               explosion_plot_dot:                          ; offset=0C74h
+0C74: 7C                    mov  a, h
+0C75: 87                    add  a                              ; double X offset (accelerating expansion)
+0C76: 67                    mov  h, a
+0C77: 19                    dad  d                              ; hl = center + offset (h=col, l=row)
+0C78: 7C                    mov  a, h
+0C79: FE 40                 cpi  40h                            ; col >= 64?
+0C7B: D0                    rnc                                 ; out of bounds
+0C7C: 7D                    mov  a, l
+0C7D: FE 19                 cpi  19h                            ; row >= 25?
+0C7F: D0                    rnc                                 ; out of bounds
+0C80: CD 9B 05              call set_cursor_in_screen_arena     ; set cursor + get buffer addr
+0C83: 7E                    mov  a, m
+0C84: FE 4F                 cpi  4Fh                            ; don't overwrite helicopter 'O'
+0C86: C8                    rz
+0C87: C5                    push b
+0C88: 79                    mov  a, c
+0C89: B7                    ora  a
+0C8A: CC BD 0C              cz   explosion_read_char            ; c=0: restore mode, read original char
+0C8D: CD 09 F8              call monitor_cout
+0C90: C1                    pop  b
+0C91: C9                    ret
+
+                    ; explosion_radiate -- draw/erase 8 dots radiating from center
+                    ; Input: B = radius step, C = char to draw (or 0 to erase), DE = center
+                    ; Plots dots at 8 directions: N, NE, E, SE, S, SW, W, NW
+0C92:               explosion_radiate:                    ; offset=0C92h
+0C92: C5                    push b
+0C93: CD AC 0C              call explosion_axis_dots     ; plot N, E, S (along axes)
+0C96: 78                    mov  a, b
+0C97: 2F                    cma
+0C98: 3C                    inr  a                       ; a = -b (negate for opposite direction)
+0C99: 67                    mov  h, a
+0C9A: 68                    mov  l, b                    ; (-b, +b) = SW direction
+0C9B: CD 74 0C              call explosion_plot_dot
+0C9E: 78                    mov  a, b
+0C9F: 2F                    cma
+0CA0: 3C                    inr  a                       ; a = -b
+0CA1: 6F                    mov  l, a
+0CA2: 60                    mov  h, b                    ; (+b, -b) = NE direction
+0CA3: 47                    mov  b, a
+0CA4: CD 74 0C              call explosion_plot_dot
+0CA7: CD AC 0C              call explosion_axis_dots     ; plot remaining diagonals
+0CAA: C1                    pop  b
+0CAB: C9                    ret
+
+                    ; explosion_axis_dots -- plot 3 dots along cardinal directions
+                    ; Input: B = radius, C = char, DE = center
+0CAC:               explosion_axis_dots:     ; offset=0CACh
+0CAC: 60                    mov  h, b
+0CAD: 2E 00                 mvi  l, 0     ; (+b, 0) = East
+0CAF: CD 74 0C              call explosion_plot_dot
+0CB2: 68                    mov  l, b
+0CB3: 60                    mov  h, b     ; (+b, +b) = SE diagonal
+0CB4: CD 74 0C              call explosion_plot_dot
+0CB7: 26 00                 mvi  h, 0
+0CB9: 68                    mov  l, b     ; (0, +b) = South
+0CBA: C3 74 0C              jmp  explosion_plot_dot
+
+0CBD:               explosion_read_char:     ; offset=0CBDh
+0CBD: 4E                    mov  c, m     ; read char from screen buffer (for erase/restore)
+0CBE: C9                    ret
+
+                    ; -----------------------------------------------------------------------
+                    ; explosion -- fast expanding ring animation (helicopter crash)
+                    ; Input: HL = position (row, col)
+                    ; Expands dots '.' outward in 8 directions for 32 steps.
+                    ; Each step: draw dots, short delay, erase dots. Fast animation.
+                    ; -----------------------------------------------------------------------
+0CBF:               explosion:             ; offset=0CBFh
+0CBF: EB                    xchg          ; de = position (center of explosion)
+0CC0: 06 00                 mvi  b, 0     ; b = radius (starts at 0)
+
+0CC2:               explosion_step:                     ; offset=0CC2h
+0CC2: 0E 2E                 mvi  c, 2Eh                ; '.' = explosion dot
+0CC4: CD 92 0C              call explosion_radiate     ; draw dots at current radius
+0CC7: 3E FF                 mvi  a, 0FFh               ; short delay (~255 iterations)
+0CC9:               explosion_delay:                        ; offset=0CC9h
+0CC9: 3D                    dcr  a
+0CCA: C2 C9 0C              jnz  explosion_delay
+0CCD: 0E 00                 mvi  c, 0                  ; c=0 = restore original chars
+0CCF: CD 92 0C              call explosion_radiate     ; erase dots
+0CD2: 04                    inr  b                     ; increase radius
+0CD3: 78                    mov  a, b
+0CD4: FE 20                 cpi  20h                   ; 32 steps total
+0CD6: C2 C2 0C              jnz  explosion_step
+0CD9: EB                    xchg
+0CDA: C9                    ret
+
+                    ; -----------------------------------------------------------------------
+                    ; slow_explosion -- slow expanding ring animation (soul/death effect)
+                    ; Input: HL = position (row, col)
+                    ; Same as explosion but 33 steps with longer delay (0x200 iterations).
+                    ; Used after person death (falling into lava, dropped from helicopter).
+                    ; -----------------------------------------------------------------------
+0CDB:               slow_explosion:          ; offset=0CDBh
+0CDB: EB                    xchg            ; de = position (center)
+0CDC: 06 20                 mvi  b, 20h     ; b = radius (starts at 32, counts down)
+
+0CDE:               slow_explosion_step:                ; offset=0CDEh
+0CDE: 0E 2E                 mvi  c, 2Eh                ; '.'
+0CE0: CD 92 0C              call explosion_radiate     ; draw dots
+0CE3: 21 00 02              lxi  h, 200h               ; long delay (~512 iterations)
+0CE6:               slow_explosion_delay:                   ; offset=0CE6h
+0CE6: 2B                    dcx  h
+0CE7: 7C                    mov  a, h
+0CE8: B5                    ora  l
+0CE9: C2 E6 0C              jnz  slow_explosion_delay
+0CEC: 0E 00                 mvi  c, 0                    ; restore original chars
+0CEE: CD 92 0C              call explosion_radiate       ; erase dots
+0CF1: 05                    dcr  b                       ; decrease radius
+0CF2: F2 DE 0C              jp   slow_explosion_step     ; repeat until b < 0
+0CF5: EB                    xchg
+0CF6: C9                    ret
+
+                    ; -----------------------------------------------------------------------
+                    ; move_and_check_soul -- move one soul "()" and check helicopter collision
+                    ; Input:  HL = pointer to soul entry (2 bytes: row, column)
+                    ; Output: HL = pointer past this entry (+2)
+                    ;
+                    ; Soul data: 2 bytes per soul in souls_positions array
+                    ;   byte 0: row  (Y coordinate)
+                    ;   byte 1: column (X coordinate)
+                    ;
+                    ; Movement: partially seeks the helicopter with random element
+                    ;   Vertical:  1/3 move up, 1/3 stay, 1/3 move toward helicopter
+                    ;   Horizontal: 1/2 stay, 1/2 move toward helicopter
+                    ; If new position is blocked (not space), reverts to old position.
+                    ; If soul touches 'O' (helicopter cockpit), triggers crash.
+                    ; Maps to Python's soul update loop with random walk + bounce.
+                    ; -----------------------------------------------------------------------
+0CF7:               move_and_check_soul:     ; offset=0CF7h
+0CF7: C5                    push b
+0CF8: 5E                    mov  e, m     ; e = current soul row
+0CF9: 4B                    mov  c, e     ; c = new row (default: same)
+
+                            ; -- vertical movement --
+0CFA: 3E 02                 mvi  a, 2
+0CFC: CD F7 05              call random              ; a = [0..2]
+0CFF: 3D                    dcr  a                   ; a = -1 (up), 0 (stay), or 1
+0D00: EA 0A 0D              jpe  soul_vert_apply     ; parity even for -1 and 0: random move
+                            ; parity odd (a=1): seek helicopter vertically
+0D03: 3A 9C 0F              lda  helicopter_xy     ; helicopter row
+0D06: BB                    cmp  e                 ; compare with soul row
+0D07: 9F                    sbb  a                 ; 0x00 if heli below, 0xFF if heli above
+0D08: F6 01                 ori  1                 ; +1 (move down) or -1 (move up) toward heli
+
+0D0A:               soul_vert_apply:                 ; offset=0D0Ah
+0D0A: 83                    add  e                  ; new_row = soul_row + delta
+0D0B: FE 19                 cpi  19h                ; >= 25? (off screen)
+0D0D: D2 11 0D              jnc  soul_vert_skip     ; out of bounds -> keep old row
+0D10: 4F                    mov  c, a               ; c = new row (accepted)
+
+0D11:               soul_vert_skip:                 ; offset=0D11h
+                            ; -- horizontal movement --
+0D11: 23                    inx  h
+0D12: 56                    mov  d, m                 ; d = current soul column
+0D13: 42                    mov  b, d                 ; b = new column (default: same)
+0D14: 3E 01                 mvi  a, 1
+0D16: CD F7 05              call random               ; a = [0..1]
+0D19: B7                    ora  a
+0D1A: CA 24 0D              jz   soul_horiz_apply     ; 0 -> no horizontal movement
+                            ; seek helicopter horizontally
+0D1D: 3A 9D 0F              lda  helicopter_xy+1     ; helicopter column
+0D20: BA                    cmp  d                   ; compare with soul column
+0D21: 9F                    sbb  a                   ; 0x00 if heli right, 0xFF if heli left
+0D22: F6 01                 ori  1                   ; +1 or -1 toward helicopter
+
+0D24:               soul_horiz_apply:                 ; offset=0D24h
+0D24: 82                    add  d                   ; new_col = soul_col + delta
+0D25: FE 3F                 cpi  3Fh                 ; >= 63?
+0D27: D2 2B 0D              jnc  soul_check_dest     ; out of bounds -> keep old col
+0D2A: 47                    mov  b, a                ; b = new column (accepted)
+
+0D2B:               soul_check_dest:                 ; offset=0D2Bh
+                            ; -- check collision at new position --
+                            ; c=new_row, b=new_col, e=old_row, d=old_col
+0D2B: E5                    push h
+0D2C: 79                    mov  a, c                    ; new row
+0D2D: 68                    mov  l, b                    ; new column
+0D2E: CD A0 05              call screen_area_address
+0D31: 7E                    mov  a, m
+0D32: FE 4F                 cpi  4Fh                     ; 'O' = helicopter cockpit?
+0D34: CA 27 0C              jz   collision_condition     ; soul hits helicopter!
+0D37: FE 20                 cpi  20h                     ; space = empty?
+0D39: C2 48 0D              jnz  soul_blocked            ; blocked -> revert position
+0D3C: 23                    inx  h                       ; check adjacent cell (soul is 2 chars "()")
+0D3D: 7E                    mov  a, m
+0D3E: FE 4F                 cpi  4Fh                     ; 'O'?
+0D40: CA 27 0C              jz   collision_condition
+0D43: FE 20                 cpi  20h                     ; space?
+0D45: CA 4A 0D              jz   soul_draw               ; both cells clear -> accept move
+
+0D48:               soul_blocked:          ; offset=0D48h
+0D48: 42                    mov  b, d     ; revert: b = old column
+0D49: 4B                    mov  c, e     ; revert: c = old row
+
+0D4A:               soul_draw:     ; offset=0D4Ah
+                            ; -- erase old and draw new "()" --
+0D4A: E1                    pop  h
+0D4B: EB                    xchg                 ; de = souls_positions ptr
+0D4C: CD 80 05              call set_cursor      ; cursor at old row,col (from hl)
+0D4F: 21 C4 0D              lxi  h, two_spaces_msg
+0D52: CD 22 06              call print_str       ; erase old "()"
+0D55: 69                    mov  l, c            ; new row
+0D56: 60                    mov  h, b            ; new column
+0D57: CD 80 05              call set_cursor
+0D5A: 21 C7 0D              lxi  h, soul_msg     ; "()"
+0D5D: CD 22 06              call print_str       ; draw soul at new position
+0D60: EB                    xchg                 ; hl = souls_positions ptr
+0D61: 70                    mov  m, b            ; store new column
+0D62: 2B                    dcx  h
+0D63: 71                    mov  m, c            ; store new row
+0D64: 23                    inx  h
+0D65: 23                    inx  h               ; advance to next soul entry
+0D66: C1                    pop  b
+0D67: C9                    ret
+
+                    ; beep -- play sound if enabled
+                    ; Sends sound_status byte to monitor_cout:
+                    ;   7 = BEL (audible beep), 0Ch = FF (form feed, silent on RK86)
+                    ; Toggled by 'S' key in menu. Preserves all registers.
+0D68:               beep:     ; offset=0D68h
+0D68: F5                    push psw
+0D69: C5                    push b
+0D6A: 3A 18 0F              lda  sound_status
+0D6D: 4F                    mov  c, a
+0D6E: CD 09 F8              call monitor_cout
+0D71: C1                    pop  b
+0D72: F1                    pop  psw
+0D73: C9                    ret
+0D74:               lava_levels:                            ; offset=0D74h
+                            ; format: count, y, x, human_y, human_x  (5 bytes per entry)
+                            ; human_y/human_x = 0,0 means no person on this ledge
+0D74: 37 18 00 00           db   37h, 18h, 0, 0, 0           ; count=55, row=24, col=0
+0D78: 00
+0D79: 35 17 02 16           db   35h, 17h, 2, 16h, 3         ; count=53, row=23, col=2,  person at (22,3)
+0D7D: 03
+0D7E: 30 16 07 00           db   30h, 16h, 7, 0, 0           ; count=48, row=22, col=7
+0D82: 00
+0D83: 2E 15 09 14           db   2Eh, 15h, 9, 14h, 0Ah       ; count=46, row=21, col=9,  person at (20,10)
+0D87: 0A
+0D88: 29 14 0E 00           db   29h, 14h, 0Eh, 0, 0         ; count=41, row=20, col=14
+0D8C: 00
+0D8D: 25 13 10 00           db   25h, 13h, 10h, 0, 0         ; count=37, row=19, col=16
+0D91: 00
+0D92: 22 12 12 11           db   22h, 12h, 12h, 11h, 13h     ; count=34, row=18, col=18, person at (17,19)
+0D96: 13
+0D97: 1C 11 17 00           db   1Ch, 11h, 17h, 0, 0         ; count=28, row=17, col=23
+0D9B: 00
+0D9C: 18 10 19 00           db   18h, 10h, 19h, 0, 0         ; count=24, row=16, col=25
+0DA0: 00
+0DA1: 16 0F 1A 00           db   16h, 0Fh, 1Ah, 0, 0         ; count=22, row=15, col=26
+0DA5: 00
+0DA6: 14 0E 1B 0D           db   14h, 0Eh, 1Bh, 0Dh, 1Ch     ; count=20, row=14, col=27, person at (13,28)
+0DAA: 1C
+0DAB: 0D 0D 20 00           db   0Dh, 0Dh, 20h, 0, 0         ; count=13, row=13, col=32
+0DAF: 00
+0DB0: 0B 0C 21 00           db   0Bh, 0Ch, 21h, 0, 0         ; count=11, row=12, col=33
+0DB4: 00
+0DB5: 09 0B 22 00           db   9, 0Bh, 22h, 0, 0           ; count=9,  row=11, col=34
+0DB9: 00
+0DBA: 07 0A 23 00           db   7, 0Ah, 23h, 0, 0           ; count=7,  row=10, col=35
+0DBE: 00
+0DBF: 04 09 25 00           db   4, 9, 25h, 0, 0             ; count=4,  row=9,  col=37
+0DC3: 00
+0DC4:               two_spaces_msg:                         ; offset=0DC4h
+0DC4: 20 20 00              db   20h, 20h, 0
+0DC7:               soul_msg:                               ; offset=0DC7h
+0DC7: 28 29 00              db   "()", 0
+                    ; -----------------------------------------------------------------------
+                    ; Helicopter sprite strings -- drawn via print_str using VT52 cursor codes
+                    ; These encode 2-line sprites in a single string using:
+                    ;   0x19 = cursor up    0x1A = cursor down    0x08 = backspace
+                    ;   0x20 = space         0x00 = string terminator
+                    ;
+                    ; The trick: after drawing the body line (row of cockpit 'O'),
+                    ; the cursor codes move up to draw the rotor line, then back down.
+                    ;
+                    ; Left-facing helicopter:    Right-facing helicopter:
+                    ;     -+-                        -+-
+                    ;     O-+                        +-O
+                    ;
+                    ; clear_helicopter_left_msg:  erase left-facing (spaces with cursor movement)
+                    ; clear_helicopter_right_msg: erase right-facing
+                    ; helicopter_left_msg:        draw left-facing (O-+ body, -+- rotor)
+                    ; helicopter_right_msg:       draw right-facing (+-O body, -+- rotor)
+                    ; -----------------------------------------------------------------------
+                    ;
+                    ; Cursor starts at cockpit 'O' position.
+                    ;
+                    ; clear_helicopter_left_msg: erase "O-+" on body row
+                    ;   20 20 20 = "   " (erase O-+)
+                    ;   19       = cursor up (to rotor row)
+                    ;   08 08 08 08 = 4x backspace (back to start of rotor)
+                    ;   20 20 20 = "   " (erase -+-)
+                    ;   1A 1A    = 2x cursor down (back to below body)
+                    ;   08 08    = 2x backspace (realign)
+0DCA:               clear_helicopter_left_msg:              ; offset=0DCAh
+0DCA: 20 20 20 19           db   20h, 20h, 20h, 19h, 08h, 08h, 08h, 08h, 20h, 20h, 20h, 1Ah, 1Ah, 08h, 08h, 0
+0DCE: 08 08 08 08
+0DD2: 20 20 20 1A
+0DD6: 1A 08 08 00
+
+                    ; clear_helicopter_right_msg: erase "+-O" on body row
+                    ;   08 08    = 2x backspace (back past +-)
+                    ;   20 20 20 = "   " (erase +-O)
+                    ;   19       = cursor up
+                    ;   08 08    = 2x backspace
+                    ;   20 20 20 = "   " (erase -+-)
+                    ;   1A 1A    = 2x cursor down
+                    ;   08 08    = 2x backspace
+0DDA:               clear_helicopter_right_msg:             ; offset=0DDAh
+0DDA: 08 08 20 20           db   08h, 08h, 20h, 20h, 20h, 19h, 08h, 08h, 20h, 20h, 20h, 1Ah, 1Ah, 08h, 08h, 0
+0DDE: 20 19 08 08
+0DE2: 20 20 20 1A
+0DE6: 1A 08 08 00
+
+                    ; helicopter_left_msg: draw left-facing "O-+"
+                    ;   4F 2D 2B = "O-+"  (body: cockpit, dash, tail)
+                    ;   19       = cursor up
+                    ;   08 08 08 08 = 4x backspace
+                    ;   2D 2B 2D = "-+-"  (rotor)
+                    ;   1A 1A    = 2x cursor down
+                    ;   08 08    = 2x backspace
+0DEA:               helicopter_left_msg:                    ; offset=0DEAh
+0DEA: 4F 2D 2B 19           db   4Fh, 2Dh, 2Bh, 19h, 08h, 08h, 08h, 08h, 2Dh, 2Bh, 2Dh, 1Ah, 1Ah, 08h, 08h, 0
+0DEE: 08 08 08 08
+0DF2: 2D 2B 2D 1A
+0DF6: 1A 08 08 00
+
+                    ; helicopter_right_msg: draw right-facing "+-O"
+                    ;   08 08    = 2x backspace (position to start of +-)
+                    ;   2B 2D 4F = "+-O"  (body: tail, dash, cockpit)
+                    ;   19       = cursor up
+                    ;   08 08    = 2x backspace
+                    ;   2D 2B 2D = "-+-"  (rotor)
+                    ;   1A 1A    = 2x cursor down
+                    ;   08 08    = 2x backspace
+0DFA:               helicopter_right_msg:                   ; offset=0DFAh
+0DFA: 08 08 2B 2D           db   08h, 08h, 2Bh, 2Dh, 4Fh, 19h, 08h, 08h, 2Dh, 2Bh, 2Dh, 1Ah, 1Ah, 08h, 08h, 0
+0DFE: 4F 19 08 08
+0E02: 2D 2B 2D 1A
+0E06: 1A 08 08 00
+                    ; -----------------------------------------------------------------------
+                    ; packed_landscape -- RLE-compressed initial screen layout
+                    ; Encoding (printed left-to-right, top-to-bottom):
+                    ;   N, char     : repeat 'char' N times (N > 0, char != 0)
+                    ;   N, 0        : end of row (print CR/LF, advance to next screen row)
+                    ;   0xFF, ...0  : literal string until null terminator (for mixed chars)
+                    ;   0           : end of data
+                    ;
+                    ; The landscape includes volcano slopes (X), people (I/Y), station
+                    ; walls (!), station roof (=), and spare helicopters (O-+, -+-).
+                    ; Unpacked into screen_area buffer (64x25) and printed simultaneously.
+                    ; -----------------------------------------------------------------------
+0E0A:               packed_landscape:                       ; offset=0E0Ah
+0E0A: 25                    db   25h     ; %
+0E0B: 20 04                 db   20h, 4
+0E0D: 58                    db   58h     ; X
+0E0E: 01 00                 db   1, 0
+0E10: 23                    db   23h     ; #
+0E11: 20 01                 db   20h, 1
+0E13: 58                    db   58h     ; X
+0E14: 01                    db   1
+0E15: 58                    db   58h     ; X
+0E16: 04 20 01              db   4, 20h, 1
+0E19: 58                    db   58h     ; X
+0E1A: 01 00                 db   1, 0
+0E1C: 22                    db   22h     ; "
+0E1D: 20 01                 db   20h, 1
+0E1F: 58                    db   58h     ; X
+0E20: 07 20 01              db   7, 20h, 1
+0E23: 58                    db   58h     ; X
+0E24: 01 00                 db   1, 0
+0E26: 21                    db   21h     ; !
+0E27: 20 01                 db   20h, 1
+0E29: 58                    db   58h     ; X
+0E2A: 09 20 01              db   9, 20h, 1
+0E2D: 58                    db   58h     ; X
+0E2E: 01 00 1C 20           db   1, 0, 1Ch, 20h, 1
+0E32: 01
+0E33: 59                    db   59h     ; Y
+0E34: 03 20 01              db   3, 20h, 1
+0E37: 58                    db   58h     ; X
+0E38: 0B 20 01              db   0Bh, 20h, 1
+0E3B: 58                    db   58h     ; X
+0E3C: 01 00 1B 20           db   1, 0, 1Bh, 20h, 4
+0E40: 04
+0E41: 58                    db   58h     ; X
+0E42: 01                    db   1
+0E43: 58                    db   58h     ; X
+0E44: 0D 20 01              db   0Dh, 20h, 1
+0E47: 58                    db   58h     ; X
+0E48: 01                    db   1
+0E49: 58                    db   58h     ; X
+0E4A: 01 00 1A 20           db   1, 0, 1Ah, 20h, 1
+0E4E: 01
+0E4F: 58                    db   58h     ; X
+0E50: 14 20 01              db   14h, 20h, 1
+0E53: 58                    db   58h     ; X
+0E54: 01 00 19 20           db   1, 0, 19h, 20h, 1
+0E58: 01
+0E59: 58                    db   58h     ; X
+0E5A: 16 20 01              db   16h, 20h, 1
+0E5D: 58                    db   58h     ; X
+0E5E: 06 20 08              db   6, 20h, 8
+0E61: 3D                    db   3Dh     ; =
+0E62: 01 00 13 20           db   1, 0, 13h, 20h, 1
+0E66: 01
+0E67: 49                    db   49h     ; I
+0E68: 03 20 01              db   3, 20h, 1
+0E6B: 58                    db   58h     ; X
+0E6C: 01                    db   1
+0E6D: 58                    db   58h     ; X
+0E6E: 18 20 01              db   18h, 20h, 1
+0E71: 58                    db   58h     ; X
+0E72: 01                    db   1
+0E73: 58                    db   58h     ; X
+0E74: 04 20 01              db   4, 20h, 1
+0E77: 21                    db   21h     ; !
+0E78: 06 20 01              db   6, 20h, 1
+0E7B: 21                    db   21h     ; !
+0E7C: 01 00 12 20           db   1, 0, 12h, 20h, 4
+0E80: 04
+0E81: 58                    db   58h     ; X
+0E82: 01                    db   1
+0E83: 58                    db   58h     ; X
+0E84: 1C 20 01              db   1Ch, 20h, 1
+0E87: 58                    db   58h     ; X
+0E88: 03 20 01              db   3, 20h, 1
+0E8B: 21                    db   21h     ; !
+0E8C: 06 20 01              db   6, 20h, 1
+0E8F: 21                    db   21h     ; !
+0E90: 01 00 10 20           db   1, 0, 10h, 20h, 1
+0E94: 01
+0E95: 58                    db   58h     ; X
+0E96: 01                    db   1
+0E97: 58                    db   58h     ; X
+0E98: 22                    db   22h     ; "
+0E99: 20 FF                 db   20h, 0FFh
+0E9B: 58                    db   58h     ; X
+0E9C: 20 20                 db   20h, 20h
+0E9E: 21                    db   21h     ; !
+0E9F: 20                    db   20h
+0EA0: 2D                    db   2Dh     ; -
+0EA1: 2B                    db   2Bh     ; +
+0EA2: 2D                    db   2Dh     ; -
+0EA3: 20 20                 db   20h, 20h
+0EA5: 21                    db   21h     ; !
+0EA6: 00 01 00 0A           db   0, 1, 0, 0Ah, 20h, 1
+0EAA: 20 01
+0EAC: 59                    db   59h     ; Y
+0EAD: 03 20 01              db   3, 20h, 1
+0EB0: 58                    db   58h     ; X
+0EB1: 01                    db   1
+0EB2: 58                    db   58h     ; X
+0EB3: 25                    db   25h     ; %
+0EB4: 20 FF                 db   20h, 0FFh
+0EB6: 58                    db   58h     ; X
+0EB7: 58                    db   58h     ; X
+0EB8: 21                    db   21h     ; !
+0EB9: 20 20                 db   20h, 20h
+0EBB: 4F                    db   4Fh     ; O
+0EBC: 2D                    db   2Dh     ; -
+0EBD: 2B                    db   2Bh     ; +
+0EBE: 20                    db   20h
+0EBF: 21                    db   21h     ; !
+0EC0: 00 01 00 09           db   0, 1, 0, 9, 20h, 4
+0EC4: 20 04
+0EC6: 58                    db   58h     ; X
+0EC7: 01                    db   1
+0EC8: 58                    db   58h     ; X
+0EC9: 29                    db   29h     ; )
+0ECA: 20 FF                 db   20h, 0FFh
+0ECC: 21                    db   21h     ; !
+0ECD: 20                    db   20h
+0ECE: 2D                    db   2Dh     ; -
+0ECF: 2B                    db   2Bh     ; +
+0ED0: 2D                    db   2Dh     ; -
+0ED1: 20 20                 db   20h, 20h
+0ED3: 21                    db   21h     ; !
+0ED4: 00 01 00 03           db   0, 1, 0, 3, 20h, 1
+0ED8: 20 01
+0EDA: 49                    db   49h     ; I
+0EDB: 03 20 01              db   3, 20h, 1
+0EDE: 58                    db   58h     ; X
+0EDF: 01                    db   1
+0EE0: 58                    db   58h     ; X
+0EE1: 2E                    db   2Eh     ; .
+0EE2: 20 FF                 db   20h, 0FFh
+0EE4: 21                    db   21h     ; !
+0EE5: 20 20                 db   20h, 20h
+0EE7: 4F                    db   4Fh     ; O
+0EE8: 2D                    db   2Dh     ; -
+0EE9: 2B                    db   2Bh     ; +
+0EEA: 20                    db   20h
+0EEB: 21                    db   21h     ; !
+0EEC: 00 01 00 02           db   0, 1, 0, 2, 20h, 4
+0EF0: 20 04
+0EF2: 58                    db   58h     ; X
+0EF3: 01                    db   1
+0EF4: 58                    db   58h     ; X
+0EF5: 30                    db   30h     ; 0
+0EF6: 20 FF                 db   20h, 0FFh
+0EF8: 21                    db   21h     ; !
+0EF9: 20                    db   20h
+0EFA: 2D                    db   2Dh     ; -
+0EFB: 2B                    db   2Bh     ; +
+0EFC: 2D                    db   2Dh     ; -
+0EFD: 20 20                 db   20h, 20h
+0EFF: 21                    db   21h     ; !
+0F00: 00 01 00 01           db   0, 1, 0, 1
+0F04: 58                    db   58h     ; X
+0F05: 01                    db   1
+0F06: 58                    db   58h     ; X
+0F07: 35                    db   35h     ; 5
+0F08: 20 FF                 db   20h, 0FFh
+0F0A: 21                    db   21h     ; !
+0F0B: 20 20                 db   20h, 20h
+0F0D: 4F                    db   4Fh     ; O
+0F0E: 2D                    db   2Dh     ; -
+0F0F: 2B                    db   2Bh     ; +
+0F10: 20                    db   20h
+0F11: 21                    db   21h     ; !
+0F12: 00 00                 db   0, 0
+                    ; -----------------------------------------------------------------------
+                    ; Game variables and control data
+                    ; -----------------------------------------------------------------------
+                    ; control_codes -- keyboard mappings for helicopter movement
+                    ; Default: 08h=backspace (up), 18h=^X (left), 19h=^Y (down), 1Ah=^Z (right)
+                    ; Can be reprogrammed via 'K' menu option (display_controls routine).
+0F14:               control_codes:                          ; offset=0F14h
+0F14: 08 18 19 1A           db   8, 18h, 19h, 1Ah     ; up, left, down, right
+0F18:               sound_status:                           ; offset=0F18h
+0F18: 07                    db   7     ; 7=BEL (sound on), 0Ch=FF (sound off)
+                    ; -----------------------------------------------------------------------
+                    ; High score table -- 5 entries x 25 bytes = 125 bytes starting at 0x0F1A
+                    ; Entry format:
+                    ;   byte 0:    saved_people count (0xFF = empty slot)
+                    ;   byte 1:    used_helicopters count (lower = better)
+                    ;   bytes 2-24: player name (null-terminated, space-padded)
+                    ;
+                    ; The first entry's byte 0 doubles as the saved_people game variable.
+                    ; Scores compared by: saved_people (higher better), then helicopters (lower better).
+                    ; -----------------------------------------------------------------------
+0F19:               saved_people:                           ; offset=0F19h
+                            ; entry 1 (0=saved, 1=helis, 2-24=name) -- all 0xFF = empty slot
+0F19: FF FF 00 00           db   0FFh, 0FFh, 0, 0, 0, 0, 0
+0F1D: 00 00 00
+0F20: 32 B7 C2 F6           db   32h, 0B7h, 0C2h, 0F6h, 19h, 3Ah, 0EFh, 14h, 0FEh, 5, 0CAh
+0F24: 19 3A EF 14
+0F28: FE 05 CA
+0F2B: 04 14 FE 0C           db   4, 14h, 0FEh, 0Ch, 0CAh, 4, 14h
+0F2F: CA 04 14
+                            ; entry 2
+0F32: 3A 0C 01 B7           db   3Ah, 0Ch, 1, 0B7h, 0CAh, 4, 14h
+0F36: CA 04 14
+0F39: 3A 26 3B 3D           db   3Ah, 26h, 3Bh, 3Dh, 6Fh, 26h, 0, 3Ah, 0FAh, 3Ah, 3Ch
+0F3D: 6F 26 00 3A
+0F41: FA 3A 3C
+0F44: 4F CD 40 1C           db   4Fh, 0CDh, 40h, 1Ch, 7Bh, 32h, 0D1h
+0F48: 7B 32 D1
+                            ; entry 3
+0F4B: 32 3A FB 3A           db   32h, 3Ah, 0FBh, 3Ah, 4Fh, 3Ah, 12h
+0F4F: 4F 3A 12
+0F52: 3B A1 4F 45           db   3Bh, 0A1h, 4Fh, 45h, 21h, 16h, 3Bh, 0CAh, 0BCh, 13h
+0F56: 21 16 3B CA
+0F5A: BC 13
+0F5C: 3E 10 B7 1F           db   3Eh, 10h, 0B7h, 1Fh, 0Dh, 0C2h, 0B4h, 13h
+0F60: 0D C2 B4 13
+                            ; entry 4
+0F64: 80 47 05 FA           db   80h, 47h, 5, 0FAh, 0CBh, 13h, 23h
+0F68: CB 13 23
+0F6B: CD 52 13 CA           db   0CDh, 52h, 13h, 0CAh, 0BCh, 13h, 23h, 0C3h, 0BCh, 13h
+0F6F: BC 13 23 C3
+0F73: BC 13
+0F75: 7E 5E 32 0A           db   7Eh, 5Eh, 32h, 0Ah, 34h, 0CDh, 52h, 13h
+0F79: 34 CD 52 13
+                            ; entry 5
+0F7D: 57 CA D9 22           db   57h, 0CAh, 0D9h, 22h, 4Fh, 13h, 2Ah
+0F81: 4F 13 2A
+0F84: 4F 13 EB 21           db   4Fh, 13h, 0EBh, 21h, 15h, 1Bh, 19h, 5Eh, 16h, 0
+0F88: 15 1B 19 5E
+0F8C: 16 00
+0F8E: D5 21 30 00           db   0D5h, 21h, 30h, 0, 0D1h, 7Bh, 95h, 6Fh
+0F92: D1 7B 95 6F
+                            ; (not part of high score table)
+0F96: 7A                    db   7Ah
+0F97:               rng_seed:                               ; offset=0F97h
+0F97: 9C 67                 dw   679Ch
+0F99:               rng_accum:                              ; offset=0F99h
+0F99: E5                    db   0E5h
+0F9A:               prev_helicopter_xy:                     ; offset=0F9Ah
+0F9A: 21 01                 dw   121h     ; previous helicopter position (for erase)
+0F9C:               helicopter_xy:                          ; offset=0F9Ch
+0F9C: 00 D1                 dw   0D100h     ; current helicopter position (L=row, H=col)
+0F9E:               helicopter_orientation_original:        ; offset=0F9Eh
+0F9E: 19                    db   19h     ; saved orientation before move
+0F9F:               helicopter_orientation:                 ; offset=0F9Fh
+0F9F: E5                    db   0E5h     ; 0=left-facing, FF=right-facing
+0FA0:               hanging_human:                          ; offset=0FA0h
+0FA0: 21                    db   21h     ; 0=none, 'I'/'J'/'L'=person hanging from heli
+0FA1:               hanging_human_timer:                    ; offset=0FA1h
+0FA1: 09                    db   9     ; countdown until person falls (0x28=start)
+0FA2:               hanging_human_y:                        ; offset=0FA2h
+0FA2: 00 E5                 dw   0E500h     ; falling person position (0xFF=inactive)
+0FA4:               station_deposit_pos:                    ; offset=0FA4h
+0FA4: CD EF                 dw   0EFCDh     ; next position in station for rescued person
+0FA6:               free_bullet:                            ; offset=0FA6h
+0FA6: 02 F1                 dw   0F102h     ; pointer to next free bullet slot
+0FA8:               used_helicopters:                       ; offset=0FA8h
+0FA8: D2                    db   0D2h     ; remaining lives (3=start)
+0FA9:               human_hands_timer:                      ; offset=0FA9h
+0FA9: FD                    db   0FDh     ; countdown for person wave animation (7=reset)
+0FAA: 0F                    db   0Fh
+0FAB: 2A                    db   2Ah      ; *
+0FAC:               number_of_souls:                        ; offset=0FACh
+0FAC: 4F                    db   4Fh     ; count of active souls on screen
+0FAD:               lava_level:                             ; offset=0FADh
+0FAD: 13                    db   13h     ; current lava level (counts down from 0x10)
+0FAE:               lava_timer:                             ; offset=0FAEh
+0FAE: E5                    db   0E5h     ; countdown until next lava advance (0x0A=reset)
+0FAF:               souls_positions:                        ; offset=0FAFh
+0FAF: 21                    db   21h     ; array of soul positions (2 bytes each: row, col)
+0FB0: 30                    db   30h     ; 0
+0FB1: 00                    db   0
+0FB2: E5                    db   0E5h
+0FB3: C1                    db   0C1h
+0FB4: E1                    db   0E1h
+0FB5: EB                    db   0EBh
+0FB6: 21                    db   21h     ; !
+0FB7:               bullets_coords:                         ; offset=0FB7h  10 entries, 4 bytes each, 40 bytes total
+0FB7: 15 1B                 dw   1B15h
+0FB9: 19 71                 dw   7119h
+0FBB: 2A 4F                 dw   4F2Ah
+0FBD: 13 E5                 dw   0E513h
+0FBF: 21 01                 dw   121h
+0FC1: 00 D1                 dw   0D100h
+0FC3: 7B 95                 dw   957Bh
+0FC5: 6F 7A                 dw   7A6Fh
+0FC7: 9C 67                 dw   679Ch
+0FC9: E5 2A                 dw   2AE5h
+0FCB: 3B 13                 dw   133Bh
+0FCD: E5 CD                 dw   0CDE5h
+0FCF: BC 02                 dw   2BCh
+0FD1: F1 D2                 dw   0D2F1h
+0FD3: E9 0F                 dw   0FE9h
+0FD5: 2A 4F                 dw   4F2Ah
+0FD7: 13 E5                 dw   0E513h
+0FD9: 21 02                 dw   221h
+0FDB: 00 D1                 dw   0D100h
+0FDD: 7B 95                 dw   957Bh
+0FDF:               stone_coords:                           ; offset=0FDFh
+0FDF: 6F 7A                 dw   7A6Fh
+0FE1: 9C 67                 dw   679Ch
+0FE3: 22 4F                 dw   4F22h
+0FE5: 13 C3                 dw   0C313h
+0FE7: FA 0F                 dw   0FFAh
+0FE9: 2A 4F                 dw   4F2Ah
+0FEB: 13 E5                 dw   0E513h
+0FED: 21 01                 dw   121h
+0FEF: 00 D1                 dw   0D100h
+0FF1: 7B 95                 dw   957Bh
+0FF3: 6F 7A                 dw   7A6Fh
+0FF5: 9C 67                 dw   679Ch
+0FF7: 22 4F                 dw   4F22h
+0FF9: 13 C3                 dw   0C313h
+0FFB: 83 0F                 dw   0F83h
+0FFD: 2A 4F                 dw   4F2Ah
+0FFF: 13                    db   13h
+
+
+Symbol Table:
+
+ANIMATE_PERSON_WAVE      08F0
+BACK_SPACE_BACK_MSG      04DB
+BEEP                     0D68
+BULLET_ADVANCE           0B95
+BULLET_CHECK_NEW_POS     0BAA
+BULLET_DONE              0BCC
+BULLET_DRAW              0BC6
+BULLET_HITS_PERSON       0BCF
+BULLET_HITS_STONE        0BED
+BULLET_SKIP_HELI         0BE3
+BULLETS_COORDS           0FB7
+CHANGE_SOUND_STATUS      01D8
+CHECK_3_CELLS_EMPTY      0A48
+CLEAN_SCREEN_AREA_LOOP   0644
+CLEAR_HELICOPTER_LEFT_MSG 0DCA
+CLEAR_HELICOPTER_RIGHT_ADDRESS 0A68
+CLEAR_HELICOPTER_RIGHT_MSG 0DDA
+COLLISION_CONDITION      0C27
+CONTROL_CODES            0F14
+CREATE_SOUL              08A0
+DELETE_MSG               03F1
+DEPOSIT_PERSON           0A70
+DISPLAY_CONTROLS         020C
+DO_PERSON_WAVE           0900
+DRAW_STONE_CHAR          056F
+END_MSG                  03D6
+ERASE_AND_DRAW_STONE     0551
+ERASE_AND_KILL_PERSON    088D
+EXPLOSION                0CBF
+EXPLOSION_AXIS_DOTS      0CAC
+EXPLOSION_DELAY          0CC9
+EXPLOSION_PLOT_DOT       0C74
+EXPLOSION_RADIATE        0C92
+EXPLOSION_READ_CHAR      0CBD
+EXPLOSION_STEP           0CC2
+F1_MSG                   03F8
+FREE_BULLET              0FA6
+FREE_BULLET_ENTRY        0BD5
+GAME_LOOP                073D
+GAME_OVER_SCREEN         0A96
+HANGING_HUMAN            0FA0
+HANGING_HUMAN_TIMER      0FA1
+HANGING_HUMAN_TIMER_EXPIRED 08DD
+HANGING_HUMAN_Y          0FA2
+HELI_BOUNDS_CHECK        0952
+HELI_CHECK_BODY          0982
+HELI_CHECK_PICKUP        0A50
+HELI_CHECK_RIGHT         0A38
+HELI_CRASH_CLEAR_BUFFER  0C4C
+HELI_CRASH_COMMON        0C2F
+HELI_DRAW_AND_PRINT      09A5
+HELI_PERSON_IN_WAY       0BF2
+HELI_PICKUP_PERSON       0A5B
+HELI_PRINT_NEW           09CA
+HELI_RESTORE_AND_CRASH   0C1E
+HELI_SET_ORIENTATION     094F
+HELI_WRITE_RIGHT         0A10
+HELI_WRITE_ROTOR         0A28
+HELICOPTER_LEFT_MSG      0DEA
+HELICOPTER_ORIENTATION   0F9F
+HELICOPTER_ORIENTATION_ORIGINAL 0F9E
+HELICOPTER_RIGHT_ADDRESS 0A6C
+HELICOPTER_RIGHT_MSG     0DFA
+HELICOPTER_XY            0F9C
+HUMAN_HANDS_TIMER        0FA9
+INIT_BULLETS_AND_STONES  0698
+INIT_STONE               05B2
+INIT_STONES_LOOP         06B6
+INPUT_COMMAND_MSG        03A8
+KILL_PERSON              0894
+LANDSCAPE_CHAR_LOOP      0665
+LANDSCAPE_PRINT_TILL_0   0672
+LANDSCAPE_UNPACK_LOOP_0  0653
+LANDSCAPE_UNPACK_LOOP_1  0654
+LAST_RESCUER_MSG         03BF
+LAVA_FILL_LOOP           084D
+LAVA_HITS_HUMAN          086E
+LAVA_LEVEL               0FAD
+LAVA_LEVELS              0D74
+LAVA_TIMER               0FAE
+LOC_11E                  011E
+LOC_13E                  013E
+LOC_15C                  015C
+LOC_167                  0167
+LOC_16E                  016E
+LOC_171                  0171
+LOC_177                  0177
+LOC_191                  0191
+LOC_1CE                  01CE
+LOC_1E4                  01E4
+LOC_204                  0204
+LOC_214                  0214
+LOC_220                  0220
+LOC_231                  0231
+LOC_24A                  024A
+LOC_253                  0253
+LOC_258                  0258
+LOC_25C                  025C
+LOC_265                  0265
+LOC_6F2                  06F2
+LOC_6FF                  06FF
+LOC_742                  0742
+LOC_75A                  075A
+LOC_798                  0798
+LOC_79F                  079F
+LOC_874                  0874
+LOC_ABF                  0ABF
+LOC_AC4                  0AC4
+LOC_AD4                  0AD4
+LOC_ADF                  0ADF
+LOC_AEB                  0AEB
+LOC_AF3                  0AF3
+LOC_AF5                  0AF5
+LOC_B01                  0B01
+LOC_B05                  0B05
+LOC_B21                  0B21
+LOC_B43                  0B43
+LOC_B57                  0B57
+LOC_B5F                  0B5F
+LOC_BFF                  0BFF
+MENU_LOOP                01A8
+MONITOR                  F800
+MONITOR_CIN              F803
+MONITOR_COUT             F809
+MONITOR_KBHIT            F812
+MOVE_AND_CHECK_SOUL      0CF7
+MOVE_DOWN                09E6
+MOVE_LEFT                0949
+MOVE_RIGHT               09F5
+MOVE_STONE               0517
+MOVE_STONES_LOOP         074E
+MOVE_UP                  09ED
+NEXT_LANDSPACE_LINE      0681
+NUMBER_OF_SOULS          0FAC
+PACKED_LANDSCAPE         0E0A
+PREV_HELICOPTER_XY       0F9A
+PRINT_CRLF               068E
+PRINT_NUMBER             0197
+PRINT_STR                0622
+PRINT_STR_CHECK          062A
+PRINT_STR_LOOP           0626
+PROCESS_BULLET           0B69
+PROCESS_HELICOPTER       0904
+PROCESS_LAVA             082F
+RANDOM                   05F7
+RESPAWN_STONE            05E3
+RNG_ACCUM                0F99
+RNG_DONE                 061F
+RNG_NARROW_CHECK         0616
+RNG_NARROW_MASK          0614
+RNG_SEED                 0F97
+SAVED_PEOPLE             0F19
+SCREEN_AREA              117F
+SCREEN_AREA_ADDRESS      05A0
+SCREEN_AREA_ADDRESS_HL   059E
+SET_CURSOR               0580
+SET_CURSOR_IN_SCREEN_ARENA 059B
+SET_CURSOR_SOMEWHERE     03ED
+SHOW_SOUND_STATUS        01ED
+SKIP_LAVA                0805
+SKIP_PRINTING_SOULS      07C0
+SKIP_SOULS_COLLISION_CHECK 07F9
+SLOW_EXPLOSION           0CDB
+SLOW_EXPLOSION_DELAY     0CE6
+SLOW_EXPLOSION_STEP      0CDE
+SOUL_BLOCKED             0D48
+SOUL_CHECK_DEST          0D2B
+SOUL_DRAW                0D4A
+SOUL_HORIZ_APPLY         0D24
+SOUL_MSG                 0DC7
+SOUL_POS_OK              08BB
+SOUL_VERT_APPLY          0D0A
+SOUL_VERT_SKIP           0D11
+SOULS_COLLISION_CHECK    07F2
+SOULS_POSITIONS          0FAF
+SOULS_PRINT_LOOP         07AD
+SOUND_OFF_MSG            03E5
+SOUND_ON_MSG             03E1
+SOUND_STATUS             0F18
+START                    0100
+START_GAME               0632
+STATION_DEPOSIT_POS      0FA4
+STONE_COORDS             0FDF
+STONE_DONE               0578
+STONE_HIT_BULLET         057B
+SUB_22B                  022B
+SWING_HANDING_MAN        0829
+TITLE_MSG                026A
+TWO_SPACES_MSG           0DC4
+USED_HELICOPTERS         0FA8
+VOLCANO                  04DF
+WRITE_3_TO_BUFFER        0A0A
+WRITE_HELI_TO_BUFFER     0A1D
+YOU_BEST_RESCUER_MSG     0476
+YOU_GOOD_PILOT_MSG       04B3
+YOUR_NAME_HISTORY_MSG    0491
+ZERO_BULLETS_LOOP        06A1

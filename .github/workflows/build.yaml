@@ -1,0 +1,15 @@
+name: volcano
+on:
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
+    workflow_dispatch:
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: oven-sh/setup-bun@v2
+            - uses: extractions/setup-just@v2
+            - run: just ci
