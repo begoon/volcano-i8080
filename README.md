@@ -1,5 +1,7 @@
 # Volcano (ВУЛКАН) — RK86 Game Disassembly
 
+[![build](https://github.com/begoon/volcano-i8080/actions/workflows/build.yaml/badge.svg)](https://github.com/begoon/volcano-i8080/actions/workflows/build.yaml)
+
 > **Disclaimer:** This project is for educational and archival purposes only. All rights to the original game implementation belong to their respective authors. No copyright infringement is intended. 
 
 The accuracy of the disassembly is verified in CI by assembling the annotated source and comparing the output byte-for-byte against the original "golden" binary.
