@@ -150,6 +150,13 @@ just ci       # assemble + verify against golden binary
 
 The assembler is [asm8080](https://www.npmjs.com/package/asm8080). The golden binary `VOLCANO.GAM` is the original game dump. Every assembled output must match it byte-for-byte.
 
+## Quick hack
+
+```text
+0517: C5 -> C9  ; turn off ashes
+082F: 3A -> C9  ; turn off lava
+```
+
 ## Related
 
 - A Python reimplementation with nearly identical gameplay is at [python/volcano.py](./python/volcano.py). Run it with `uv run python python/volcano.py`
