@@ -164,6 +164,6 @@ The assembler is [asm8080](https://www.npmjs.com/package/asm8080). The golden bi
 
 ## Online
 
-Play VOLCANO [online](https://rk86.ru/beta/index.html?file=RESCUE.GAM).
+Play VOLCANO [online](https://rk86.ru/beta/index.html?file=RESCUE.GAM) in the emulator or the [remake in JavaScript](https://begoon.github.io/volcano-i8080/html/index.html).
 
 Original game for BBC Micro - https://bbcmicro.co.uk/game.php?id=143
