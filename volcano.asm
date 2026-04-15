@@ -1,5 +1,5 @@
         org  100h
-        section rescue
+        section volcano
 
 screen_area   equ 117fh
 monitor_cout  equ 0F809h

@@ -1,11 +1,16 @@
 # Volcano (ВУЛКАН) — RK86 Game Disassembly
 
-> **Disclaimer:** This project is for educational and archival purposes only. All rights to the original game implementation belong to their respective authors. No copyright infringement is intended.
+> **Disclaimer:** This project is for educational and archival purposes only. All rights to the original game implementation belong to their respective authors. No copyright infringement is intended. 
 
-Annotated Intel 8080 disassembly of "Volcano" (version 1.0), a rescue helicopter game for the Радио-86РК (Radio-86RK) computer.
+The accuracy of the disassembly is verified in CI by assembling the annotated source and comparing the output byte-for-byte against the original "golden" binary.
+
+Annotated Intel 8080 disassembly of "Volcano", a rescue helicopter game for the Радио-86РК (Radio-86RK) computer.
 
 - [volcano.asm](volcano.asm) — annotated source
 - [volcano.lst](volcano.lst) — assembler listing with addresses and symbol table
+
+- [VOLCANO.GAM](VOLCANO.GAM) — the tape binary without the E6 header and trailer
+- [tape/VOLCANO.GAM](tape/VOLCANO.GAM) — tape version of the binary with the E6 header and trailer
 
 ```console
 (C) 1987 BONY
