@@ -159,6 +159,7 @@ The assembler is [asm8080](https://www.npmjs.com/package/asm8080). The golden bi
 
 ## Related
 
+- A JavaScript remake is at [html/volcano.js](./html/index.html). It uses 8.8 fixed-point stone physics and tick-based timers from the original assembly. Supports keyboard and game controllers (joysticks, D-pad, triggers to fire).
 - A Python reimplementation with nearly identical gameplay is at [python/volcano.py](./python/volcano.py). Run it with `uv run python python/volcano.py`
 - The [RK86 ROM monitor](https://github.com/begoon/rk86-monitor/blob/main/monitor.asm) provides keyboard input, screen output, and cursor positioning via subroutines.
 

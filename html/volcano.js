@@ -309,7 +309,49 @@ document.addEventListener("keydown", (e) => {
     if (dominated.includes(e.code)) e.preventDefault();
     keyQ.push(e.code);
 });
+
+// ─── Gamepad support ─────────────────────────────────────────────
+const DEADZONE = 0.4;
+
+function pollGamepad() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const gp of gamepads) {
+        if (!gp) continue;
+        // Left stick (axes 0,1) or right stick (axes 2,3)
+        const lx = gp.axes[0] || 0;
+        const ly = gp.axes[1] || 0;
+        const rx = gp.axes[2] || 0;
+        const ry = gp.axes[3] || 0;
+        const ax = Math.abs(lx) > Math.abs(rx) ? lx : rx;
+        const ay = Math.abs(ly) > Math.abs(ry) ? ly : ry;
+
+        if (ay < -DEADZONE) keyQ.push("ArrowUp");
+        else if (ay > DEADZONE) keyQ.push("ArrowDown");
+        if (ax < -DEADZONE) keyQ.push("ArrowLeft");
+        else if (ax > DEADZONE) keyQ.push("ArrowRight");
+
+        // D-pad (buttons 12-15: up, down, left, right)
+        if (gp.buttons[12] && gp.buttons[12].pressed) keyQ.push("ArrowUp");
+        if (gp.buttons[13] && gp.buttons[13].pressed) keyQ.push("ArrowDown");
+        if (gp.buttons[14] && gp.buttons[14].pressed) keyQ.push("ArrowLeft");
+        if (gp.buttons[15] && gp.buttons[15].pressed) keyQ.push("ArrowRight");
+
+        // Front triggers/bumpers (L1=4, R1=5, L2=6, R2=7) → fire
+        for (const idx of [4, 5, 6, 7]) {
+            if (gp.buttons[idx] && gp.buttons[idx].pressed) keyQ.push("Space");
+        }
+
+        // Face buttons: A/B/X/Y (0-3) → start/fire
+        if (gp.buttons[0] && gp.buttons[0].pressed) keyQ.push("Space");
+        if (gp.buttons[1] && gp.buttons[1].pressed) keyQ.push("Space");
+        if (gp.buttons[9] && gp.buttons[9].pressed) keyQ.push("Enter"); // Start
+
+        break; // use first connected gamepad
+    }
+}
+
 function popKey() {
+    pollGamepad();
     const k = keyQ.length ? keyQ[keyQ.length - 1] : null;
     keyQ = [];
     return k;
