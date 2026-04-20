@@ -1,5 +1,5 @@
 0100:                       org  100h
-                            section rescue
+                            section volcano
 
 =117F               screen_area   equ 117fh
 =F809               monitor_cout  equ 0F809h
@@ -7,6 +7,13 @@
 =F800               monitor       equ 0F800h
 =F812               monitor_kbhit equ 0F812h
 
+                    ; -----------------------------------------------------------------------
+                    ; start -- title screen entry point (Z80 equivalent: TTLSCR)
+                    ; Clears screen, prints title text, shows sound status and key assignments,
+                    ; then prints up to 5 high-score entries (skipping empty slots where
+                    ; saved_people > 4) and finally the "last result" line for the most recent
+                    ; player. Falls through into draw_banner and menu_loop.
+                    ; -----------------------------------------------------------------------
 0100:               start:                                  ; offset=0100h
 0100: 31 7F 11              lxi  sp, screen_area
 0103: 0E 1F                 mvi  c, 1Fh
@@ -16,14 +23,15 @@
 010E: CD ED 01              call show_sound_status
 0111: 0E 01                 mvi  c, 1
 0113: CD 0C 02              call display_controls
-0116: 21 1A 0F              lxi  h, 0F1Ah
-0119: 11 12 21              lxi  d, 2112h
-011C: 06 05                 mvi  b, 5
+0116: 21 1A 0F              lxi  h, 0F1Ah                   ; high-score table
+0119: 11 12 21              lxi  d, 2112h                   ; cursor X=33, Y=18
+011C: 06 05                 mvi  b, 5                       ; 5 entries to print
 
-011E:               loc_11E:                                ; offset=011Eh
+                    ; Print each hiscore entry; a first byte >4 marks end of list (empty slot).
+011E:               title_hiscore_loop:                                ; offset=011Eh
 011E: 7E                    mov  a, m
 011F: FE 05                 cpi  5
-0121: D2 3E 01              jnc  loc_13E
+0121: D2 3E 01              jnc  title_print_last_result    ; empty slot -> stop
 0124: EB                    xchg
 0125: CD 80 05              call set_cursor
 0128: EB                    xchg
@@ -36,65 +44,73 @@
 0136: CD 22 06              call print_str
 0139: 1C                    inr  e
 013A: 05                    dcr  b
-013B: C2 1E 01              jnz  loc_11E
+013B: C2 1E 01              jnz  title_hiscore_loop
 
-013E:               loc_13E:                                ; offset=013Eh
+013E:               title_print_last_result:                                ; offset=013Eh
 013E: 21 18 21              lxi  h, 2118h
 0141: CD 80 05              call set_cursor
 0144: 21 19 0F              lxi  h, saved_people
 0147: 7E                    mov  a, m
 0148: FE 05                 cpi  5
-014A: D2 5C 01              jnc  loc_15C
+014A: D2 5C 01              jnc  draw_banner
 014D: CD 97 01              call print_number
-0150: 21 A8 0F              lxi  h, used_helicopters
+0150: 21 A8 0F              lxi  h, helicopters_left
 0153: CD 97 01              call print_number
 0156: 21 BF 03              lxi  h, last_rescuer_msg     ; " - poslednij rezulxtat"
 0159: CD 22 06              call print_str
 
-015C:               loc_15C:                                ; offset=015Ch
-015C: 0E 0C                 mvi  c, 0Ch
+                    ; -----------------------------------------------------------------------
+                    ; draw_banner -- render the big "VOLCANO" title banner (Z80: BANNER)
+                    ; 7 rows x 7 columns of 8-pixel bitmap cells. For each row, walks the
+                    ; volcano font table (7 bytes per row). Each bit in a byte selects the
+                    ; corresponding letter of "VOLCANO" (1=letter, 0=space) via RAL + CY.
+                    ; After banner completes, falls into menu_loop.
+                    ; -----------------------------------------------------------------------
+015C:               draw_banner:                                ; offset=015Ch
+015C: 0E 0C                 mvi  c, 0Ch                     ; form feed (clear screen)
 015E: CD 09 F8              call monitor_cout
 0161: E5                    push h
-0162: 21 E6 04              lxi  h, 4E6h
-0165: 1E 07                 mvi  e, 7
+0162: 21 E6 04              lxi  h, 4E6h                    ; font bitmap data (volcano+7)
+0165: 1E 07                 mvi  e, 7                       ; 7 rows to draw
 
-0167:               loc_167:                                ; offset=0167h
+0167:               banner_row_loop:                                ; offset=0167h
 0167: 16 07                 mvi  d, 7
 0169: E3                    xthl
 016A: 21 DF 04              lxi  h, volcano
 016D: E3                    xthl
 
-016E:               loc_16E:                                ; offset=016Eh
+016E:               banner_char_loop:                                ; offset=016Eh
 016E: 06 08                 mvi  b, 8
 0170: 7E                    mov  a, m
 
-0171:               loc_171:                                ; offset=0171h
+0171:               banner_pixel_loop:                                ; offset=0171h
 0171: 17                    ral
-0172: DA 91 01              jc   loc_191
+0172: DA 91 01              jc   banner_letter_pixel
 0175: 0E 20                 mvi  c, 20h     ; ' '
 
-0177:               loc_177:                                ; offset=0177h
+0177:               banner_emit_pixel:                                ; offset=0177h
 0177: CD 09 F8              call monitor_cout
 017A: 05                    dcr  b
-017B: C2 71 01              jnz  loc_171
+017B: C2 71 01              jnz  banner_pixel_loop
 017E: 23                    inx  h
 017F: E3                    xthl
 0180: 23                    inx  h
 0181: E3                    xthl
 0182: 15                    dcr  d
-0183: C2 6E 01              jnz  loc_16E
+0183: C2 6E 01              jnz  banner_char_loop
 0186: CD 8E 06              call print_crlf
 0189: 1D                    dcr  e
-018A: C2 67 01              jnz  loc_167
+018A: C2 67 01              jnz  banner_row_loop
 018D: E1                    pop  h
 018E: C3 A8 01              jmp  menu_loop
 
-0191:               loc_191:                                ; offset=0191h
+0191:               banner_letter_pixel:                                ; offset=0191h
 0191: E3                    xthl
 0192: 4E                    mov  c, m
 0193: E3                    xthl
-0194: C3 77 01              jmp  loc_177
+0194: C3 77 01              jmp  banner_emit_pixel
 
+                    ; print_number -- display byte at (HL) as single digit with 2 trailing spaces
 0197:               print_number:                           ; offset=0197h
 0197: 7E                    mov  a, m
 0198: C6 30                 adi  30h        ; '0'
@@ -112,7 +128,7 @@
 01B1: FE 50                 cpi  50h            ; 'P'
 01B3: CA 32 06              jz   start_game
 01B6: FE 4B                 cpi  4Bh            ; 'K'
-01B8: CA 04 02              jz   loc_204
+01B8: CA 04 02              jz   program_keys
 01BB: FE 53                 cpi  53h            ; 'S'
 01BD: CA D8 01              jz   change_sound_status
 01C0: FE 45                 cpi  45h            ; 'E'
@@ -121,20 +137,20 @@
 01C8: CD 22 06              call print_str
 01CB: 01 0A 19              lxi  b, 190Ah       ; print 25 lines
 
-01CE:               loc_1CE:                                ; offset=01CEh
+01CE:               exit_print_lines_loop:                                ; offset=01CEh
 01CE: CD 09 F8              call monitor_cout
 01D1: 05                    dcr  b
-01D2: C2 CE 01              jnz  loc_1CE
+01D2: C2 CE 01              jnz  exit_print_lines_loop
 01D5: C3 00 F8              jmp  monitor
 
 01D8:               change_sound_status:                    ; offset=01D8h
 01D8: 3A 18 0F              lda  sound_status
 01DB: FE 07                 cpi  7
 01DD: 3E 0C                 mvi  a, 0Ch
-01DF: CA E4 01              jz   loc_1E4
+01DF: CA E4 01              jz   store_sound_status
 01E2: 3E 07                 mvi  a, 7
 
-01E4:               loc_1E4:                                ; offset=01E4h
+01E4:               store_sound_status:                                ; offset=01E4h
 01E4: 32 18 0F              sta  sound_status
 01E7: CD ED 01              call show_sound_status
 01EA: C3 A8 01              jmp  menu_loop
@@ -149,74 +165,89 @@
 01FE: 21 E5 03              lxi  h, sound_off_msg
 0201: C3 22 06              jmp  print_str
 
-0204:               loc_204:                                ; offset=0204h
-0204: 0E 00                 mvi  c, 0
+                    ; program_keys -- 'K' option: prompt user to rebind each of 4 control keys
+0204:               program_keys:                                ; offset=0204h
+0204: 0E 00                 mvi  c, 0                       ; c=0 means "program mode" (read key)
 0206: CD 0C 02              call display_controls
 0209: C3 A8 01              jmp  menu_loop
 
+                    ; -----------------------------------------------------------------------
+                    ; display_controls -- show (or program) the 4 helicopter control keys
+                    ; Input: C = 1 to only display, 0 to also read a new assignment for each
+                    ; Walks control_codes[0..3] (up, left, down, right) and for each prints
+                    ; the key name at a fixed screen column. In program mode (C=0) waits for
+                    ; a keypress first and stores it. (Z80 equivalent: KEYS)
+                    ; -----------------------------------------------------------------------
 020C:               display_controls:                       ; offset=020Ch
-020C: 21 09 30              lxi  h, 3009h
-020F: 11 14 0F              lxi  d, 0F14h
-0212: 06 04                 mvi  b, 4
+020C: 21 09 30              lxi  h, 3009h                   ; cursor X=48, Y=9
+020F: 11 14 0F              lxi  d, 0F14h                   ; control_codes
+0212: 06 04                 mvi  b, 4                       ; 4 keys
 
-0214:               loc_214:                                ; offset=0214h
+0214:               keys_loop:                                ; offset=0214h
 0214: C5                    push b
 0215: 0D                    dcr  c
-0216: CA 20 02              jz   loc_220
-0219: CD 2B 02              call sub_22B
+0216: CA 20 02              jz   keys_display_only
+0219: CD 2B 02              call show_key_name
 021C: CD 03 F8              call monitor_cin
 021F: 12                    stax d
 
-0220:               loc_220:                                ; offset=0220h
-0220: CD 2B 02              call sub_22B
+0220:               keys_display_only:                                ; offset=0220h
+0220: CD 2B 02              call show_key_name
 0223: C1                    pop  b
 0224: 2C                    inr  l
 0225: 13                    inx  d
 0226: 05                    dcr  b
-0227: C2 14 02              jnz  loc_214
+0227: C2 14 02              jnz  keys_loop
 022A: C9                    ret
 
-022B:               sub_22B:                                ; offset=022Bh
+                    ; -----------------------------------------------------------------------
+                    ; show_key_name -- clear the key's display slot and write its name
+                    ; Input: HL = cursor pos, DE = &control_codes[i]
+                    ; Prints 15 spaces to clear the slot, then either the character directly
+                    ; (if printable), "DELETE" (if 0x7F), or looks up a name in f1_msg table
+                    ; via show_ctrl_key. (Z80 equivalent: KEYNAM)
+                    ; -----------------------------------------------------------------------
+022B:               show_key_name:                                ; offset=022Bh
 022B: CD 80 05              call set_cursor
-022E: 01 20 0F              lxi  b, 0F20h
+022E: 01 20 0F              lxi  b, 0F20h                   ; b=15, c=' ' -> print 15 spaces
 
-0231:               loc_231:                                ; offset=0231h
+0231:               clear_key_name_loop:                                ; offset=0231h
 0231: CD 09 F8              call monitor_cout
 0234: 05                    dcr  b
-0235: C2 31 02              jnz  loc_231
+0235: C2 31 02              jnz  clear_key_name_loop
 0238: CD 80 05              call set_cursor
 023B: 1A                    ldax d
 023C: FE 7F                 cpi  7Fh     ;
-023E: CA 4A 02              jz   loc_24A
+023E: CA 4A 02              jz   show_delete_key
 0241: FE 21                 cpi  21h     ; '!'
-0243: DA 53 02              jc   loc_253
+0243: DA 53 02              jc   show_ctrl_key
 0246: 4F                    mov  c, a
 0247: C3 09 F8              jmp  monitor_cout
 
-024A:               loc_24A:                                ; offset=024Ah
+024A:               show_delete_key:                                ; offset=024Ah
 024A: E5                    push h
 024B: 21 F1 03              lxi  h, delete_msg     ; "DELETE"
 024E: CD 22 06              call print_str
 0251: E1                    pop  h
 0252: C9                    ret
 
-0253:               loc_253:                                ; offset=0253h
+0253:               show_ctrl_key:                                ; offset=0253h
 0253: E5                    push h
 0254: 21 F8 03              lxi  h, 3F8h
 0257: 47                    mov  b, a
 
-0258:               loc_258:                                ; offset=0258h
+0258:               keyname_advance:                                ; offset=0258h
 0258: 05                    dcr  b
-0259: FA 65 02              jm   loc_265
+0259: FA 65 02              jm   print_key_name
 
-025C:               loc_25C:                                ; offset=025Ch
+025C:               keyname_skip_null:                                ; offset=025Ch
 025C: 7E                    mov  a, m
 025D: B7                    ora  a
 025E: 23                    inx  h
-025F: C2 5C 02              jnz  loc_25C
-0262: C3 58 02              jmp  loc_258
+025F: C2 5C 02              jnz  keyname_skip_null
+0262: C3 58 02              jmp  keyname_advance
 
-0265:               loc_265:                                ; offset=0265h
+0265:               print_key_name:                                ; offset=0265h
 0265: CD 22 06              call print_str
 0268: E1                    pop  h
 0269: C9                    ret
@@ -349,7 +380,7 @@
 03F5: 54 45 00
                     ; -----------------------------------------------------------------------
                     ; Key name lookup table -- null-terminated strings for display_controls.
-                    ; Indexed by key code (0x00..0x1F). sub_22B scans through these
+                    ; Indexed by key code (0x00..0x1F). show_key_name scans through these
                     ; null-terminated entries to find the name for a given key code.
                     ; Used when showing/programming the helicopter control keys.
                     ; -----------------------------------------------------------------------
@@ -440,7 +471,7 @@
                     ; Structure: 7 bytes of character table ("VOLCANO") followed by
                     ; 49 bytes of bitmap data (7 rows x 7 bytes per row).
                     ;
-                    ; Rendering (see loc_167): for each of the 7 rows, 7 bitmap bytes are
+                    ; Rendering (see banner_row_loop): for each of the 7 rows, 7 bitmap bytes are
                     ; processed. Each byte is 8 pixels (MSB first via RAL). A '1' bit prints
                     ; the corresponding column's letter from "VOLCANO"; a '0' bit prints space.
                     ;
@@ -917,53 +948,68 @@
 06E2: 32 AC 0F              sta  number_of_souls
 06E5: 32 19 0F              sta  saved_people
 06E8: 3E 03                 mvi  a, 3
-06EA: 32 A8 0F              sta  used_helicopters
+06EA: 32 A8 0F              sta  helicopters_left
 06ED: 3E 07                 mvi  a, 7
 06EF: 32 A9 0F              sta  human_hands_timer
 
-06F2:               loc_6F2:                                ; offset=06F2h
+                    ; -----------------------------------------------------------------------
+                    ; next_helicopter -- respawn next life (Z80 equivalent: NEXTH)
+                    ; Resets stack, drains any pending keypress, decrements helicopters_left.
+                    ; Erases one helicopter from the "remaining lives" column on the right
+                    ; (at X=58, Y=20+2*N) then draws the new active helicopter at (58,15)
+                    ; facing left. Game over when no helicopters remain.
+                    ; -----------------------------------------------------------------------
+06F2:               next_helicopter:                                ; offset=06F2h
 06F2: 31 7F 11              lxi  sp, screen_area
 06F5: CD 12 F8              call monitor_kbhit
 06F8: B7                    ora  a
-06F9: CA FF 06              jz   loc_6FF     ; no_key_pressed
-06FC: CD 03 F8              call monitor_cin
+06F9: CA FF 06              jz   next_heli_init     ; no_key_pressed
+06FC: CD 03 F8              call monitor_cin                    ; drain stray key
 
-06FF:               loc_6FF:                                ; offset=06FFh
+06FF:               next_heli_init:                                ; offset=06FFh
 06FF: AF                    xra  a
 0700: 32 9F 0F              sta  helicopter_orientation         ; 0 - left, FF - right
 0703: 32 A0 0F              sta  hanging_human
-0706: 3A A8 0F              lda  used_helicopters
+0706: 3A A8 0F              lda  helicopters_left
 0709: 3D                    dcr  a
-070A: FA 96 0A              jm   game_over_screen
-070D: 32 A8 0F              sta  used_helicopters
-0710: 87                    add  a
+070A: FA 96 0A              jm   game_over_screen               ; no lives left -> show scores
+070D: 32 A8 0F              sta  helicopters_left
+0710: 87                    add  a                              ; Y = 2*helicopters_left + 20
 0711: C6 14                 adi  14h
 0713: 6F                    mov  l, a
-0714: 26 3A                 mvi  h, 3Ah                         ; ':'
+0714: 26 3A                 mvi  h, 3Ah                         ; X=58 (lives column)
 0716: CD 9B 05              call set_cursor_in_screen_arena     ; Y = l, X = h
-0719: 16 20                 mvi  d, 20h                         ; ' '
+0719: 16 20                 mvi  d, 20h                         ; ' ' (erase one spare)
 071B: AF                    xra  a
 071C: CD 1D 0A              call write_heli_to_buffer
 071F: 21 CA 0D              lxi  h, clear_helicopter_left_msg
 0722: CD 22 06              call print_str
-0725: 21 0F 3A              lxi  h, 3A0Fh
+0725: 21 0F 3A              lxi  h, 3A0Fh                       ; active pos: X=58, Y=15
 0728: 22 9C 0F              shld helicopter_xy
 072B: CD 9B 05              call set_cursor_in_screen_arena     ; Y = l, X = h
-072E: 16 4F                 mvi  d, 4Fh                         ; 'O'
+072E: 16 4F                 mvi  d, 4Fh                         ; 'O' (cockpit)
 0730: AF                    xra  a
 0731: CD 1D 0A              call write_heli_to_buffer
 0734: 21 EA 0D              lxi  h, helicopter_left_msg
 0737: CD 22 06              call print_str
 073A: CD 68 0D              call beep
 
+                    ; -----------------------------------------------------------------------
+                    ; game_loop -- main per-tick game loop (Z80 equivalent: LOOP)
+                    ; Each iteration: advance bullets, move stones, advance bullets again
+                    ; (bullets move twice per tick), update falling person, run helicopter
+                    ; input + soul redraws, then (every 7 ticks) run wave animation and
+                    ; soul collision-check; (every lava_timer ticks) advance lava.
+                    ; Ends when person hanging from helicopter falls off.
+                    ; -----------------------------------------------------------------------
 073D:               game_loop:                              ; offset=073Dh
 073D: 21 B7 0F              lxi  h, bullets_coords     ; 10 (0x0a), 4 bytes each, 40 bytes total
 0740: 06 0A                 mvi  b, 0Ah
 
-0742:               loc_742:                                ; offset=0742h
+0742:               first_bullets_loop:                                ; offset=0742h
 0742: CD 69 0B              call process_bullet
 0745: 05                    dcr  b
-0746: C2 42 07              jnz  loc_742
+0746: C2 42 07              jnz  first_bullets_loop
 0749: 21 DF 0F              lxi  h, stone_coords
 074C: 06 14                 mvi  b, 14h
 
@@ -974,14 +1020,14 @@
 0755: 21 B7 0F              lxi  h, bullets_coords     ; 10 (0x0a), 4 bytes each, 40 bytes total
 0758: 06 0A                 mvi  b, 0Ah
 
-075A:               loc_75A:                                ; offset=075Ah
+075A:               second_bullets_loop:                                ; offset=075Ah
 075A: CD 69 0B              call process_bullet
 075D: 05                    dcr  b
-075E: C2 5A 07              jnz  loc_75A
+075E: C2 5A 07              jnz  second_bullets_loop
 0761: 2A A2 0F              lhld hanging_human_y
 0764: 7D                    mov  a, l
 0765: B7                    ora  a
-0766: FA 9F 07              jm   loc_79F
+0766: FA 9F 07              jm   tick_helicopter_and_souls
 0769: EB                    xchg
 076A: 6A                    mov  l, d
 076B: CD A0 05              call screen_area_address
@@ -990,7 +1036,7 @@
 0773: 09                    dad  b
 0774: 7E                    mov  a, m
 0775: FE 20                 cpi  20h        ; ' '
-0777: C2 74 08              jnz  loc_874
+0777: C2 74 08              jnz  falling_man_hit_ground
 077A: 36 59                 mvi  m, 59h     ; 'Y'
 077C: EB                    xchg
 077D: CD 80 05              call set_cursor
@@ -1001,17 +1047,17 @@
 078A: 0E 08                 mvi  c, 8
 078C: CD 09 F8              call monitor_cout
 078F: 7D                    mov  a, l
-0790: 0F                    rrc
+0790: 0F                    rrc                             ; alternate 'L'/'J' by row parity
 0791: 0E 4C                 mvi  c, 4Ch     ; 'L'
-0793: DA 98 07              jc   loc_798
+0793: DA 98 07              jc   print_falling_char
 0796: 0E 4A                 mvi  c, 4Ah     ; 'J'
 
-0798:               loc_798:                                ; offset=0798h
+0798:               print_falling_char:                                ; offset=0798h
 0798: CD 09 F8              call monitor_cout
 079B: 2C                    inr  l
 079C: 22 A2 0F              shld hanging_human_y
 
-079F:               loc_79F:                                ; offset=079Fh
+079F:               tick_helicopter_and_souls:                                ; offset=079Fh
 079F: CD 04 09              call process_helicopter
 07A2: 3A AC 0F              lda  number_of_souls
 07A5: B7                    ora  a
@@ -1153,7 +1199,10 @@
 0870: EB                    xchg                 ; hl = person row,col
 0871: C3 94 08              jmp  kill_person     ; trigger explosion + create soul
 
-0874:               loc_874:                                ; offset=0874h
+                    ; Falling person can't continue: something is below them in the buffer.
+                    ; If it's another person ('Y' or 'I'), erase them too and turn both into
+                    ; souls (Z80 equivalent: m6). Deactivates the falling slot.
+0874:               falling_man_hit_ground:                                ; offset=0874h
 0874: CD 68 0D              call beep
 0877: EB                    xchg
 0878: FE 59                 cpi  59h     ; 'Y'
@@ -1163,7 +1212,7 @@
 0882: 3E FF                 mvi  a, 0FFh
 0884: 32 A2 0F              sta  hanging_human_y
 0887: CD 94 08              call kill_person
-088A: C3 9F 07              jmp  loc_79F
+088A: C3 9F 07              jmp  tick_helicopter_and_souls
 
 088D:               erase_and_kill_person:                  ; offset=088Dh
 088D: EB                    xchg
@@ -1530,114 +1579,135 @@
 0A93: FE 04                 cpi  4
 0A95: C0                    rnz
 
+                    ; -----------------------------------------------------------------------
+                    ; game_over_screen -- end of game: print congratulations and hall of fame
+                    ; If no people were saved, return to title without asking for a name.
+                    ; If all 4 saved, print "best rescuer"; if also all helicopters intact,
+                    ; add "very good pilot". Then walk into hiscore insertion.
+                    ; (Z80 equivalent: EXITG)
+                    ; -----------------------------------------------------------------------
 0A96:               game_over_screen:                       ; offset=0A96h
 0A96: 31 7F 11              lxi  sp, screen_area
-0A99: 21 E9 03              lxi  h, 3E9h
+0A99: 21 E9 03              lxi  h, 3E9h                    ; enable cursor sequence
 0A9C: CD 22 06              call print_str
 0A9F: 3A 19 0F              lda  saved_people
 0AA2: B7                    ora  a
-0AA3: CA 00 01              jz   start
+0AA3: CA 00 01              jz   start                      ; no score worth recording
 0AA6: FE 04                 cpi  4
-0AA8: C2 BF 0A              jnz  loc_ABF
+0AA8: C2 BF 0A              jnz  hiscore_find_slot
 0AAB: 21 76 04              lxi  h, you_best_rescuer_msg
 0AAE: CD 22 06              call print_str
-0AB1: 3A A8 0F              lda  used_helicopters
-0AB4: FE 03                 cpi  3
-0AB6: C2 BF 0A              jnz  loc_ABF
+0AB1: 3A A8 0F              lda  helicopters_left
+0AB4: FE 03                 cpi  3                          ; all 3 helicopters still alive?
+0AB6: C2 BF 0A              jnz  hiscore_find_slot
 0AB9: 21 B3 04              lxi  h, you_good_pilot_msg
 0ABC: CD 22 06              call print_str
 
-0ABF:               loc_ABF:                                ; offset=0ABFh
-0ABF: 21 1A 0F              lxi  h, 0F1Ah
-0AC2: 06 05                 mvi  b, 5
+                    ; -----------------------------------------------------------------------
+                    ; Hall-of-fame insertion (Z80 equivalent: sco1-sco9). Each entry is 25
+                    ; bytes (0x19): [saved_people, helicopters_left, 23-byte null-terminated
+                    ; name]. Entries are sorted by saved_people desc, then helicopters_left
+                    ; asc. A first byte > 4 marks the end of the populated table.
+                    ; -----------------------------------------------------------------------
+0ABF:               hiscore_find_slot:                                ; offset=0ABFh
+0ABF: 21 1A 0F              lxi  h, 0F1Ah                   ; high-score table start
+0AC2: 06 05                 mvi  b, 5                       ; 5 slots
 
-0AC4:               loc_AC4:                                ; offset=0AC4h
+                    ; For each slot: if our saved_people beats slot's -> insert before it.
+                    ; If equal, compare helicopters_left (lower wins). If slot is empty
+                    ; (byte>4) append at end via hiscore_mark_end.
+0AC4:               hiscore_compare_loop:                                ; offset=0AC4h
 0AC4: 3A 19 0F              lda  saved_people
 0AC7: BE                    cmp  m
-0AC8: CA DF 0A              jz   loc_ADF
-0ACB: D2 EB 0A              jnc  loc_AEB
+0AC8: CA DF 0A              jz   hiscore_check_helis
+0ACB: D2 EB 0A              jnc  hiscore_insert_shift
 0ACE: 7E                    mov  a, m
 0ACF: FE 05                 cpi  5
-0AD1: D2 5F 0B              jnc  loc_B5F
+0AD1: D2 5F 0B              jnc  hiscore_mark_end
 
-0AD4:               loc_AD4:                                ; offset=0AD4h
-0AD4: 11 19 00              lxi  d, 19h
+0AD4:               hiscore_skip_entry:                                ; offset=0AD4h
+0AD4: 11 19 00              lxi  d, 19h                     ; entry size
 0AD7: 19                    dad  d
 0AD8: 05                    dcr  b
-0AD9: C2 C4 0A              jnz  loc_AC4
-0ADC: C3 00 01              jmp  start
+0AD9: C2 C4 0A              jnz  hiscore_compare_loop
+0ADC: C3 00 01              jmp  start                      ; didn't place on table
 
-0ADF:               loc_ADF:                                ; offset=0ADFh
-0ADF: 3A A8 0F              lda  used_helicopters
+0ADF:               hiscore_check_helis:                                ; offset=0ADFh
+0ADF: 3A A8 0F              lda  helicopters_left
 0AE2: 23                    inx  h
-0AE3: BE                    cmp  m
+0AE3: BE                    cmp  m                          ; compare against stored helis
 0AE4: 2B                    dcx  h
-0AE5: CA D4 0A              jz   loc_AD4
-0AE8: DA D4 0A              jc   loc_AD4
+0AE5: CA D4 0A              jz   hiscore_skip_entry         ; same -> not better
+0AE8: DA D4 0A              jc   hiscore_skip_entry         ; fewer lives -> not better
 
-0AEB:               loc_AEB:                                ; offset=0AEBh
+                    ; Shift subsequent entries one slot down to make room at HL.
+                    ; Copies from end of entry 4 back to end of entry 5, B entries worth.
+0AEB:               hiscore_insert_shift:                                ; offset=0AEBh
 0AEB: 05                    dcr  b
 0AEC: E5                    push h
-0AED: 21 7D 0F              lxi  h, 0F7Dh
-0AF0: 11 96 0F              lxi  d, 0F96h
+0AED: 21 7D 0F              lxi  h, 0F7Dh                   ; src = last byte of entry 4
+0AF0: 11 96 0F              lxi  d, 0F96h                   ; dst = last byte of entry 5
 
-0AF3:               loc_AF3:                                ; offset=0AF3h
-0AF3: 0E 19                 mvi  c, 19h
+0AF3:               hiscore_shift_outer:                                ; offset=0AF3h
+0AF3: 0E 19                 mvi  c, 19h                     ; 25 bytes per entry
 
-0AF5:               loc_AF5:                                ; offset=0AF5h
+0AF5:               hiscore_shift_inner:                                ; offset=0AF5h
 0AF5: 7E                    mov  a, m
 0AF6: 12                    stax d
 0AF7: 2B                    dcx  h
 0AF8: 1B                    dcx  d
 0AF9: 0D                    dcr  c
-0AFA: C2 F5 0A              jnz  loc_AF5
+0AFA: C2 F5 0A              jnz  hiscore_shift_inner
 0AFD: 05                    dcr  b
-0AFE: C2 F3 0A              jnz  loc_AF3
+0AFE: C2 F3 0A              jnz  hiscore_shift_outer
 
-0B01:               loc_B01:                                ; offset=0B01h
+                    ; Fill the freed slot with spaces, then prompt the user for their name.
+0B01:               hiscore_fill_entry:                                ; offset=0B01h
 0B01: E1                    pop  h
 0B02: E5                    push h
-0B03: 06 18                 mvi  b, 18h
+0B03: 06 18                 mvi  b, 18h                     ; 24 bytes (size-1; trailing null)
 
-0B05:               loc_B05:                                ; offset=0B05h
+0B05:               hiscore_clear_loop:                                ; offset=0B05h
 0B05: 36 20                 mvi  m, 20h     ; ' '
 0B07: 23                    inx  h
 0B08: 05                    dcr  b
-0B09: C2 05 0B              jnz  loc_B05
+0B09: C2 05 0B              jnz  hiscore_clear_loop
 0B0C: 36 00                 mvi  m, 0
 0B0E: 21 91 04              lxi  h, your_name_history_msg
 0B11: CD 22 06              call print_str
 0B14: E1                    pop  h
 0B15: 3A 19 0F              lda  saved_people
-0B18: 77                    mov  m, a
+0B18: 77                    mov  m, a                       ; store score
 0B19: 23                    inx  h
-0B1A: 3A A8 0F              lda  used_helicopters
-0B1D: 77                    mov  m, a
+0B1A: 3A A8 0F              lda  helicopters_left
+0B1D: 77                    mov  m, a                       ; store helicopters
 0B1E: 23                    inx  h
-0B1F: 06 00                 mvi  b, 0
+0B1F: 06 00                 mvi  b, 0                       ; name length accumulator
 
-0B21:               loc_B21:                                ; offset=0B21h
+                    ; Read characters until CR. Backspace erases; max 23 chars. Control
+                    ; characters and overflow produce a beep. (Z80 equivalent: gnc/delc/ign)
+0B21:               name_input_loop:                                ; offset=0B21h
 0B21: CD 03 F8              call monitor_cin
 0B24: 4F                    mov  c, a
 0B25: FE 08                 cpi  8
-0B27: CA 43 0B              jz   loc_B43
+0B27: CA 43 0B              jz   name_backspace
 0B2A: FE 0D                 cpi  0Dh
 0B2C: CA 00 01              jz   start
 0B2F: FE 20                 cpi  20h     ; ' '
-0B31: DA 57 0B              jc   loc_B57
+0B31: DA 57 0B              jc   name_ignore_beep
 0B34: 78                    mov  a, b
 0B35: FE 17                 cpi  17h
-0B37: CA 57 0B              jz   loc_B57
+0B37: CA 57 0B              jz   name_ignore_beep
 0B3A: 04                    inr  b
 0B3B: 71                    mov  m, c
 0B3C: 23                    inx  h
 0B3D: CD 09 F8              call monitor_cout
-0B40: C3 21 0B              jmp  loc_B21
+0B40: C3 21 0B              jmp  name_input_loop
 
-0B43:               loc_B43:                                ; offset=0B43h
+0B43:               name_backspace:                                ; offset=0B43h
 0B43: 78                    mov  a, b
 0B44: B7                    ora  a
-0B45: CA 57 0B              jz   loc_B57
+0B45: CA 57 0B              jz   name_ignore_beep
 0B48: 05                    dcr  b
 0B49: 2B                    dcx  h
 0B4A: 36 20                 mvi  m, 20h                     ; ' '
@@ -1645,19 +1715,21 @@
 0B4D: 21 DB 04              lxi  h, back_space_back_msg     ; "\b \b"
 0B50: CD 22 06              call print_str
 0B53: EB                    xchg
-0B54: C3 21 0B              jmp  loc_B21
+0B54: C3 21 0B              jmp  name_input_loop
 
-0B57:               loc_B57:                                ; offset=0B57h
+0B57:               name_ignore_beep:                                ; offset=0B57h
 0B57: 0E 07                 mvi  c, 7
 0B59: CD 09 F8              call monitor_cout
-0B5C: C3 21 0B              jmp  loc_B21
+0B5C: C3 21 0B              jmp  name_input_loop
 
-0B5F:               loc_B5F:                                ; offset=0B5Fh
+                    ; Append at end of populated table: mark the next slot empty (0xFF)
+                    ; so the title screen stops reading there. (Z80 equivalent: sco7)
+0B5F:               hiscore_mark_end:                                ; offset=0B5Fh
 0B5F: E5                    push h
-0B60: 11 19 00              lxi  d, 19h
+0B60: 11 19 00              lxi  d, 19h                     ; entry size
 0B63: 19                    dad  d
-0B64: 36 FF                 mvi  m, 0FFh
-0B66: C3 01 0B              jmp  loc_B01
+0B64: 36 FF                 mvi  m, 0FFh                    ; end-of-table marker
+0B66: C3 01 0B              jmp  hiscore_fill_entry
 
                     ; -----------------------------------------------------------------------
                     ; process_bullet -- update one bullet position
@@ -1776,11 +1848,11 @@
 0BF2: 7E                    mov  a, m
 0BF3: 06 00                 mvi  b, 0
 0BF5: FE 49                 cpi  49h     ; 'I'
-0BF7: CA FF 0B              jz   loc_BFF
+0BF7: CA FF 0B              jz   heli_crushes_person
 0BFA: FE 59                 cpi  59h     ; 'Y'
 0BFC: C2 1E 0C              jnz  heli_restore_and_crash
 
-0BFF:               loc_BFF:                                ; offset=0BFFh
+0BFF:               heli_crushes_person:                                ; offset=0BFFh
 0BFF: 36 20                 mvi  m, 20h               ; ' '
 0C01: 3A 9C 0F              lda  helicopter_xy
 0C04: 2F                    cma
@@ -1840,11 +1912,11 @@
 0C60: C1                    pop  b
 0C61: 3A A0 0F              lda  hanging_human
 0C64: B0                    ora  b
-0C65: CA F2 06              jz   loc_6F2
+0C65: CA F2 06              jz   next_helicopter
 0C68: CD DB 0C              call slow_explosion
 0C6B: 2A 9A 0F              lhld prev_helicopter_xy
 0C6E: CD A0 08              call create_soul
-0C71: C3 F2 06              jmp  loc_6F2
+0C71: C3 F2 06              jmp  next_helicopter
 
                     ; -----------------------------------------------------------------------
                     ; Explosion animation system
@@ -2394,7 +2466,7 @@
                     ; High score table -- 5 entries x 25 bytes = 125 bytes starting at 0x0F1A
                     ; Entry format:
                     ;   byte 0:    saved_people count (0xFF = empty slot)
-                    ;   byte 1:    used_helicopters count (lower = better)
+                    ;   byte 1:    helicopters_left count (lower = better)
                     ;   bytes 2-24: player name (null-terminated, space-padded)
                     ;
                     ; The first entry's byte 0 doubles as the saved_people game variable.
@@ -2465,7 +2537,7 @@
 0FA4: CD EF                 dw   0EFCDh     ; next position in station for rescued person
 0FA6:               free_bullet:                            ; offset=0FA6h
 0FA6: 02 F1                 dw   0F102h     ; pointer to next free bullet slot
-0FA8:               used_helicopters:                       ; offset=0FA8h
+0FA8:               helicopters_left:                       ; offset=0FA8h
 0FA8: D2                    db   0D2h     ; remaining lives (3=start)
 0FA9:               human_hands_timer:                      ; offset=0FA9h
 0FA9: FD                    db   0FDh     ; countdown for person wave animation (7=reset)
@@ -2526,203 +2598,3 @@
 0FFD: 2A 4F                 dw   4F2Ah
 0FFF: 13                    db   13h
 
-
-Symbol Table:
-
-ANIMATE_PERSON_WAVE      08F0
-BACK_SPACE_BACK_MSG      04DB
-BEEP                     0D68
-BULLET_ADVANCE           0B95
-BULLET_CHECK_NEW_POS     0BAA
-BULLET_DONE              0BCC
-BULLET_DRAW              0BC6
-BULLET_HITS_PERSON       0BCF
-BULLET_HITS_STONE        0BED
-BULLET_SKIP_HELI         0BE3
-BULLETS_COORDS           0FB7
-CHANGE_SOUND_STATUS      01D8
-CHECK_3_CELLS_EMPTY      0A48
-CLEAN_SCREEN_AREA_LOOP   0644
-CLEAR_HELICOPTER_LEFT_MSG 0DCA
-CLEAR_HELICOPTER_RIGHT_ADDRESS 0A68
-CLEAR_HELICOPTER_RIGHT_MSG 0DDA
-COLLISION_CONDITION      0C27
-CONTROL_CODES            0F14
-CREATE_SOUL              08A0
-DELETE_MSG               03F1
-DEPOSIT_PERSON           0A70
-DISPLAY_CONTROLS         020C
-DO_PERSON_WAVE           0900
-DRAW_STONE_CHAR          056F
-END_MSG                  03D6
-ERASE_AND_DRAW_STONE     0551
-ERASE_AND_KILL_PERSON    088D
-EXPLOSION                0CBF
-EXPLOSION_AXIS_DOTS      0CAC
-EXPLOSION_DELAY          0CC9
-EXPLOSION_PLOT_DOT       0C74
-EXPLOSION_RADIATE        0C92
-EXPLOSION_READ_CHAR      0CBD
-EXPLOSION_STEP           0CC2
-F1_MSG                   03F8
-FREE_BULLET              0FA6
-FREE_BULLET_ENTRY        0BD5
-GAME_LOOP                073D
-GAME_OVER_SCREEN         0A96
-HANGING_HUMAN            0FA0
-HANGING_HUMAN_TIMER      0FA1
-HANGING_HUMAN_TIMER_EXPIRED 08DD
-HANGING_HUMAN_Y          0FA2
-HELI_BOUNDS_CHECK        0952
-HELI_CHECK_BODY          0982
-HELI_CHECK_PICKUP        0A50
-HELI_CHECK_RIGHT         0A38
-HELI_CRASH_CLEAR_BUFFER  0C4C
-HELI_CRASH_COMMON        0C2F
-HELI_DRAW_AND_PRINT      09A5
-HELI_PERSON_IN_WAY       0BF2
-HELI_PICKUP_PERSON       0A5B
-HELI_PRINT_NEW           09CA
-HELI_RESTORE_AND_CRASH   0C1E
-HELI_SET_ORIENTATION     094F
-HELI_WRITE_RIGHT         0A10
-HELI_WRITE_ROTOR         0A28
-HELICOPTER_LEFT_MSG      0DEA
-HELICOPTER_ORIENTATION   0F9F
-HELICOPTER_ORIENTATION_ORIGINAL 0F9E
-HELICOPTER_RIGHT_ADDRESS 0A6C
-HELICOPTER_RIGHT_MSG     0DFA
-HELICOPTER_XY            0F9C
-HUMAN_HANDS_TIMER        0FA9
-INIT_BULLETS_AND_STONES  0698
-INIT_STONE               05B2
-INIT_STONES_LOOP         06B6
-INPUT_COMMAND_MSG        03A8
-KILL_PERSON              0894
-LANDSCAPE_CHAR_LOOP      0665
-LANDSCAPE_PRINT_TILL_0   0672
-LANDSCAPE_UNPACK_LOOP_0  0653
-LANDSCAPE_UNPACK_LOOP_1  0654
-LAST_RESCUER_MSG         03BF
-LAVA_FILL_LOOP           084D
-LAVA_HITS_HUMAN          086E
-LAVA_LEVEL               0FAD
-LAVA_LEVELS              0D74
-LAVA_TIMER               0FAE
-LOC_11E                  011E
-LOC_13E                  013E
-LOC_15C                  015C
-LOC_167                  0167
-LOC_16E                  016E
-LOC_171                  0171
-LOC_177                  0177
-LOC_191                  0191
-LOC_1CE                  01CE
-LOC_1E4                  01E4
-LOC_204                  0204
-LOC_214                  0214
-LOC_220                  0220
-LOC_231                  0231
-LOC_24A                  024A
-LOC_253                  0253
-LOC_258                  0258
-LOC_25C                  025C
-LOC_265                  0265
-LOC_6F2                  06F2
-LOC_6FF                  06FF
-LOC_742                  0742
-LOC_75A                  075A
-LOC_798                  0798
-LOC_79F                  079F
-LOC_874                  0874
-LOC_ABF                  0ABF
-LOC_AC4                  0AC4
-LOC_AD4                  0AD4
-LOC_ADF                  0ADF
-LOC_AEB                  0AEB
-LOC_AF3                  0AF3
-LOC_AF5                  0AF5
-LOC_B01                  0B01
-LOC_B05                  0B05
-LOC_B21                  0B21
-LOC_B43                  0B43
-LOC_B57                  0B57
-LOC_B5F                  0B5F
-LOC_BFF                  0BFF
-MENU_LOOP                01A8
-MONITOR                  F800
-MONITOR_CIN              F803
-MONITOR_COUT             F809
-MONITOR_KBHIT            F812
-MOVE_AND_CHECK_SOUL      0CF7
-MOVE_DOWN                09E6
-MOVE_LEFT                0949
-MOVE_RIGHT               09F5
-MOVE_STONE               0517
-MOVE_STONES_LOOP         074E
-MOVE_UP                  09ED
-NEXT_LANDSPACE_LINE      0681
-NUMBER_OF_SOULS          0FAC
-PACKED_LANDSCAPE         0E0A
-PREV_HELICOPTER_XY       0F9A
-PRINT_CRLF               068E
-PRINT_NUMBER             0197
-PRINT_STR                0622
-PRINT_STR_CHECK          062A
-PRINT_STR_LOOP           0626
-PROCESS_BULLET           0B69
-PROCESS_HELICOPTER       0904
-PROCESS_LAVA             082F
-RANDOM                   05F7
-RESPAWN_STONE            05E3
-RNG_ACCUM                0F99
-RNG_DONE                 061F
-RNG_NARROW_CHECK         0616
-RNG_NARROW_MASK          0614
-RNG_SEED                 0F97
-SAVED_PEOPLE             0F19
-SCREEN_AREA              117F
-SCREEN_AREA_ADDRESS      05A0
-SCREEN_AREA_ADDRESS_HL   059E
-SET_CURSOR               0580
-SET_CURSOR_IN_SCREEN_ARENA 059B
-SET_CURSOR_SOMEWHERE     03ED
-SHOW_SOUND_STATUS        01ED
-SKIP_LAVA                0805
-SKIP_PRINTING_SOULS      07C0
-SKIP_SOULS_COLLISION_CHECK 07F9
-SLOW_EXPLOSION           0CDB
-SLOW_EXPLOSION_DELAY     0CE6
-SLOW_EXPLOSION_STEP      0CDE
-SOUL_BLOCKED             0D48
-SOUL_CHECK_DEST          0D2B
-SOUL_DRAW                0D4A
-SOUL_HORIZ_APPLY         0D24
-SOUL_MSG                 0DC7
-SOUL_POS_OK              08BB
-SOUL_VERT_APPLY          0D0A
-SOUL_VERT_SKIP           0D11
-SOULS_COLLISION_CHECK    07F2
-SOULS_POSITIONS          0FAF
-SOULS_PRINT_LOOP         07AD
-SOUND_OFF_MSG            03E5
-SOUND_ON_MSG             03E1
-SOUND_STATUS             0F18
-START                    0100
-START_GAME               0632
-STATION_DEPOSIT_POS      0FA4
-STONE_COORDS             0FDF
-STONE_DONE               0578
-STONE_HIT_BULLET         057B
-SUB_22B                  022B
-SWING_HANDING_MAN        0829
-TITLE_MSG                026A
-TWO_SPACES_MSG           0DC4
-USED_HELICOPTERS         0FA8
-VOLCANO                  04DF
-WRITE_3_TO_BUFFER        0A0A
-WRITE_HELI_TO_BUFFER     0A1D
-YOU_BEST_RESCUER_MSG     0476
-YOU_GOOD_PILOT_MSG       04B3
-YOUR_NAME_HISTORY_MSG    0491
-ZERO_BULLETS_LOOP        06A1
